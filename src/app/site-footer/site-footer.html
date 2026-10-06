@@ -1,0 +1,27 @@
+<footer class="site-footer">
+  <div class="site-footer__inner page-wrap">
+    <div class="site-footer__brand">
+      <span class="brand__mark" aria-hidden="true">MB</span>
+      <div>
+        <p class="site-footer__name">{{ identity.name }}</p>
+        <p class="site-footer__note">{{ copy().footerNote }}</p>
+      </div>
+    </div>
+
+    <nav class="social-list" [attr.aria-label]="copy().accessibility.socialLinks">
+      @for (link of socialLinks; track link.platform) {
+        @if (link.href) {
+          <a class="social-list__item" [href]="link.href" target="_blank" rel="noreferrer">
+            {{ link.platform }}
+            <span class="social-list__status">↗</span>
+          </a>
+        } @else {
+          <span class="social-list__item social-list__item--pending">
+            {{ link.platform }}
+            <span class="social-list__status">{{ copy().socialPending }}</span>
+          </span>
+        }
+      }
+    </nav>
+  </div>
+</footer>

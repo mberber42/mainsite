@@ -1,0 +1,40 @@
+<header class="site-header">
+  <div class="site-header__inner page-wrap mx-auto max-w-7xl px-5">
+    <a class="brand" href="#top" [attr.aria-label]="copy().accessibility.brandHome">
+      <span class="brand__mark" aria-hidden="true">MB</span>
+      <span class="brand__name">Mustafa BERBER</span>
+    </a>
+
+    <nav class="site-nav" [attr.aria-label]="copy().accessibility.navigation">
+      @for (item of copy().navigation; track item.href) {
+        <a class="site-nav__link" [href]="item.href">{{ item.label }}</a>
+      }
+    </nav>
+
+    <div class="header-actions">
+      <div
+        class="language-switch"
+        role="group"
+        [attr.aria-label]="copy().accessibility.languageGroup"
+      >
+        <button
+          type="button"
+          [attr.aria-label]="copy().accessibility.switchToTurkish"
+          [attr.aria-pressed]="locale() === 'tr'"
+          (click)="setLocale('tr')"
+        >
+          TR
+        </button>
+        <button
+          type="button"
+          [attr.aria-label]="copy().accessibility.switchToEnglish"
+          [attr.aria-pressed]="locale() === 'en'"
+          (click)="setLocale('en')"
+        >
+          EN
+        </button>
+      </div>
+      <a class="header-contact" href="#contact">{{ copy().contact.eyebrow }}</a>
+    </div>
+  </div>
+</header>
