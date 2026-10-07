@@ -26,6 +26,11 @@
               }
             ],
             "styles": ["src/styles.css"],
+            "optimization": {
+              "styles": {
+                "inlineCritical": false
+              }
+            },
             "server": "src/main.server.ts",
             "outputMode": "server",
             "security": {
@@ -40,8 +45,8 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kB",
-                  "maximumError": "1MB"
+                  "maximumWarning": "420kB",
+                  "maximumError": "450kB"
                 },
                 {
                   "type": "anyComponentStyle",

@@ -50,4 +50,24 @@ jobs:
       - name: Check formatting
         run: npm run format:check
       - name: Build
+        env:
+          PUBLIC_SITE_URL: http://127.0.0.1:4321
         run: npm run build
+      - name: Install Chromium for browser audits
+        run: npx playwright install --with-deps chromium
+      - name: Check initial transfer budget
+        run: npm run check:performance-budget
+      - name: Run WCAG axe and Lighthouse CI audits
+        env:
+          PUBLIC_SITE_URL: http://127.0.0.1:4321
+        run: npm run test:quality
+      - name: Upload accessibility and Lighthouse evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase4-quality-evidence
+          path: |
+            test-results/
+            playwright-report/
+            lighthouse-reports/
+          if-no-files-found: ignore

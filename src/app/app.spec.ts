@@ -109,6 +109,17 @@ describe('public routes', () => {
     expect(page.querySelector('h1')?.textContent).toContain('Hakkımda');
 
     expect(page.querySelector('.site-footer a[href="/iletisim"]')).not.toBeNull();
+    expect(page.querySelector('nav.site-nav')?.getAttribute('aria-label')).toBe('Üst gezinme');
+    expect(page.querySelector('nav.footer-nav')?.getAttribute('aria-label')).toBe('Ana gezinme');
+
+    page.querySelector<HTMLButtonElement>('[aria-label="İngilizce diline geç"]')?.click();
+    fixture.detectChanges();
+    expect(page.querySelector('nav.site-nav')?.getAttribute('aria-label')).toBe(
+      'Header navigation',
+    );
+    expect(page.querySelector('nav.footer-nav')?.getAttribute('aria-label')).toBe(
+      'Primary navigation',
+    );
   });
 
   it('shows bilingual empty states for local blog and Lab data', async () => {
@@ -282,5 +293,84 @@ describe('public routes', () => {
       email: 'mustafa@example.test',
       message: 'Test message',
     });
+  });
+
+  it('emits canonical social metadata and BlogPosting JSON-LD, and noindexes missing pages', async () => {
+    const blogPosts = BLOG_POSTS as unknown as BlogPost[];
+    const initialLength = blogPosts.length;
+    const publishedAt = '2026-09-01T00:00:00.000Z';
+    blogPosts.push({
+      slug: 'metadata-check',
+      title: { tr: 'Test yazısı', en: 'Test article' },
+      summary: { tr: 'Test özeti', en: 'Test summary' },
+      body: [],
+      publishedAt,
+      seoTitle: { tr: 'SEO başlığı', en: 'SEO title' },
+      seoDescription: { tr: 'SEO açıklaması', en: 'SEO description' },
+      canonicalUrl: 'https://content.example.test/blog/metadata-check?tracking=ignore',
+      ogImage: 'https://images.example.test/article-cover.png',
+    });
+
+    try {
+      const { fixture, router } = await createApp();
+      await router.navigateByUrl('/blog/metadata-check');
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(document.title).toBe('SEO başlığı | Mustafa BERBER');
+      expect(document.querySelector('meta[name="description"]')?.getAttribute('content')).toBe(
+        'SEO açıklaması',
+      );
+      expect(document.querySelector('meta[property="og:title"]')?.getAttribute('content')).toBe(
+        'SEO başlığı | Mustafa BERBER',
+      );
+      expect(document.querySelector('meta[property="og:type"]')?.getAttribute('content')).toBe(
+        'article',
+      );
+      expect(document.querySelector('meta[name="twitter:card"]')?.getAttribute('content')).toBe(
+        'summary_large_image',
+      );
+      expect(document.querySelector('meta[name="twitter:image"]')?.getAttribute('content')).toBe(
+        'https://images.example.test/article-cover.png',
+      );
+      expect(document.querySelector('link[rel="canonical"]')?.getAttribute('href')).toBe(
+        'https://content.example.test/blog/metadata-check',
+      );
+      const schema = JSON.parse(
+        document.querySelector('script[data-seo-jsonld]')?.textContent ?? 'null',
+      ) as {
+        '@graph': {
+          '@type': string;
+          headline?: string;
+          datePublished?: string;
+          mainEntityOfPage?: { '@id': string };
+        }[];
+      };
+      const articleSchema = schema['@graph'].find((node) => node['@type'] === 'BlogPosting');
+      expect(articleSchema).toMatchObject({
+        headline: 'SEO başlığı',
+        datePublished: publishedAt,
+        mainEntityOfPage: { '@id': 'https://content.example.test/blog/metadata-check' },
+      });
+
+      await router.navigateByUrl('/blog/missing-entry');
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(document.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe(
+        'noindex, follow',
+      );
+
+      await router.navigateByUrl('/hizmetler');
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(document.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe(
+        'index, follow',
+      );
+    } finally {
+      blogPosts.splice(initialLength);
+    }
   });
 });

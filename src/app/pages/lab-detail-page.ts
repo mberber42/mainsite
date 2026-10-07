@@ -40,19 +40,25 @@ export class LabDetailPageComponent {
   constructor() {
     effect(() => {
       const entry = this.project();
+      const locale = this.locale();
       if (!entry) {
         if (this.response) this.response.status = 404;
         this.seo.applyValues(
           `${this.copy().notFoundTitle} | Mustafa BERBER`,
           this.copy().notFoundBody,
+          undefined,
+          undefined,
+          { locale, robots: 'noindex, follow' },
         );
         return;
       }
+      const title = this.localized(entry.title);
       this.seo.applyValues(
-        `${this.localized(entry.title)} | Mustafa BERBER`,
+        `${title} | Mustafa BERBER`,
         this.localized(entry.summary),
         entry.canonicalUrl,
         entry.ogImage ?? entry.coverImage,
+        { locale, type: 'creativeWork', schemaTitle: title },
       );
       if (this.response) this.response.status = 200;
     });
