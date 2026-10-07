@@ -7,7 +7,8 @@ The Phase 3 admin uses a same-origin Express API in the Angular SSR Node server,
 - Apply explicit, transactionally tracked SQL migrations with `npm run db:migrate`.
 - Start the service only with `DATABASE_URL`, a `SESSION_SECRET` of at least 32 bytes, and an absolute `UPLOAD_DIR` on persistent storage. `PORT` defaults to 4000; set `TRUST_PROXY=1` only behind one trusted reverse proxy.
 - `/admin/login` is the only unauthenticated admin route. There is no public signup. A one-time `npm run admin:bootstrap` prompts interactively for `CREATE`, email, and a hidden password, storing a salted scrypt hash. Bootstrap is atomic and rejects repeat runs.
-- Sessions are stored in PostgreSQL, use eight-hour `HttpOnly`/`SameSite=Strict` cookies and `Secure` in production, rotate at login, and are destroyed at logout. Mutation methods require same-origin checks plus a session CSRF token.
+- Sessions are stored in PostgreSQL, use eight-hour `HttpOnly`/`SameSite=Strict` cookies and `Secure` in production, rotate at login, and are destroyed at logout. Anonymous `/api/auth/csrf` and `/api/auth/session` requests can create at most 20 persisted sessions per IP per minute; rejected requests do not create sessions. Mutation methods require same-origin checks plus a session CSRF token.
+- Admin HTML responses deny framing with `X-Frame-Options: DENY` and `Content-Security-Policy: frame-ancestors 'none'`.
 - Admin CRUD is server-authorized. Public endpoints expose only published entries whose scheduled publication time is not in the future. File writes/deletes are admin-only; public reads are limited to files currently used as a published cover or CV.
 
 ## Schema and content kinds
@@ -16,7 +17,7 @@ The Phase 3 admin uses a same-origin Express API in the Angular SSR Node server,
 
 ## File storage and backups
 
-The API checks the real upload directory and rejects ephemeral roots (`/tmp`, `/var/tmp`, `/dev/shm`, `/run`) during normal runtime. Image uploads accept PNG/JPEG/WebP up to 5 MB; CV uploads accept PDF up to 8 MB. Filenames are random UUIDs, not client filenames. Back up PostgreSQL and the upload volume together so metadata and file bytes remain consistent.
+The API checks the real upload directory, requires owner-only directory permissions (`0700`), and rejects ephemeral roots (`/tmp`, `/var/tmp`, `/dev/shm`, `/run`) during normal runtime. Existing directories with broader permissions are rejected rather than silently adopted. Image uploads accept PNG/JPEG/WebP up to 5 MB; CV uploads accept PDF up to 8 MB. Filenames are random UUIDs, not client filenames. Back up PostgreSQL and the upload volume together so metadata and file bytes remain consistent.
 
 **Deployment risk remains open:** no target host, persistent volume, backup policy, or restore path has been verified. Before deploying, validate durable storage, automated database and file backups, and a successful restore. If either storage persistence or backup/restore cannot be guaranteed, deployment is blocked. The implementation PR itself is not a deployment authorization.
 

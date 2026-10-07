@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
-import { mkdtemp, readdir, rm } from 'node:fs/promises';
+import { chmod, mkdtemp, readdir, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, before, test } from 'node:test';
@@ -26,6 +26,7 @@ let server;
 let secureAppClose;
 let secureServer;
 let uploadDir;
+let unsafeUploadDir;
 let baseUrl;
 let admin;
 let visitor;
@@ -54,6 +55,11 @@ async function request(path, options = {}) {
     ? null
     : Buffer.from(await response.arrayBuffer());
   return { response, data, bytes, cookie };
+}
+
+function assertAdminFrameHeaders(response) {
+  assert.equal(response.headers.get('x-frame-options'), 'DENY');
+  assert.equal(response.headers.get('content-security-policy'), "frame-ancestors 'none'");
 }
 
 async function adminRequest(path, options = {}) {
@@ -124,6 +130,9 @@ before(async () => {
     production: false,
   });
   appClose = createdApp.close;
+  createdApp.app.use('/admin', (_req, res) => {
+    res.type('html').send('<!doctype html><html lang="tr"><body><main>Admin</main></body></html>');
+  });
   server = await startServer(createdApp.app);
   baseUrl = `http://127.0.0.1:${server.address().port}`;
 });
@@ -133,16 +142,36 @@ after(async () => {
   if (secureAppClose) await secureAppClose();
   if (server) await new Promise((resolve) => server.close(resolve));
   if (appClose) await appClose();
+  if (unsafeUploadDir) await rm(unsafeUploadDir, { recursive: true, force: true });
   if (uploadDir) await rm(uploadDir, { recursive: true, force: true });
   await pool.end();
 });
 
 test('PostgreSQL CMS authentication, publishing, CRUD, dashboard, inbox, and local file flows', async () => {
+  const uploadMode = (await stat(uploadDir)).mode & 0o777;
+  assert.equal(uploadMode & 0o077, 0, 'the existing upload directory is owner-only');
+  unsafeUploadDir = await mkdtemp(join(tmpdir(), 'mainsite-cms-unsafe-test-'));
+  await chmod(unsafeUploadDir, 0o755);
+  await assert.rejects(
+    createCmsApp({
+      pool,
+      sessionSecret: randomBytes(48).toString('base64url'),
+      uploadDir: unsafeUploadDir,
+      allowEphemeralUploadDir: true,
+    }),
+    /cms_upload_dir_permissions_unsafe/,
+  );
+
+  const adminLoginPage = await request('/admin/login');
+  assert.equal(adminLoginPage.response.status, 200);
+  assert.match(adminLoginPage.response.headers.get('content-type') ?? '', /text\/html/i);
+  assertAdminFrameHeaders(adminLoginPage.response);
   const unauthedDashboard = await request('/api/admin/dashboard');
   assert.equal(unauthedDashboard.response.status, 401);
   const protectedPage = await request('/admin/dashboard');
   assert.equal(protectedPage.response.status, 302);
   assert.equal(protectedPage.response.headers.get('location'), '/admin/login');
+  assertAdminFrameHeaders(protectedPage.response);
   assert.equal(
     (await request('/api/auth/signup', { method: 'POST', json: {} })).response.status,
     404,
@@ -203,6 +232,10 @@ test('PostgreSQL CMS authentication, publishing, CRUD, dashboard, inbox, and loc
     'successful login regenerates the session identifier',
   );
   admin = { cookie: login.cookie, csrf: login.data.csrfToken };
+  const adminDashboardPage = await request('/admin/dashboard', { cookie: admin.cookie });
+  assert.equal(adminDashboardPage.response.status, 200);
+  assert.match(adminDashboardPage.response.headers.get('content-type') ?? '', /text\/html/i);
+  assertAdminFrameHeaders(adminDashboardPage.response);
   const authenticatedSession = await adminRequest('/api/auth/session');
   assert.equal(authenticatedSession.data.authenticated, true);
   assert.match(authenticatedSession.data.csrfToken, /^[A-Za-z0-9_-]{40,}$/);
@@ -483,6 +516,41 @@ test('PostgreSQL CMS authentication, publishing, CRUD, dashboard, inbox, and loc
     'production HTTPS cookies are Secure',
   );
 
+  const burstIp = '203.0.113.77';
+  const sessionCountBefore = Number(
+    (await pool.query('SELECT count(*) FROM cms_sessions')).rows[0].count,
+  );
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const path = attempt % 2 === 0 ? '/api/auth/csrf' : '/api/auth/session';
+    const response = await fetch(new URL(path, secureUrl), {
+      headers: {
+        'X-Forwarded-For': burstIp,
+        'X-Forwarded-Proto': 'https',
+        Origin: `https://127.0.0.1:${secureServer.address().port}`,
+      },
+    });
+    assert.equal(response.status, 200, `anonymous session attempt ${attempt + 1}`);
+    assert.ok(response.headers.get('set-cookie'), 'accepted anonymous session is persisted');
+    if (path.endsWith('/session')) assert.equal((await response.json()).authenticated, false);
+  }
+  const blockedAnonymousSession = await fetch(new URL('/api/auth/csrf', secureUrl), {
+    headers: {
+      'X-Forwarded-For': burstIp,
+      'X-Forwarded-Proto': 'https',
+      Origin: `https://127.0.0.1:${secureServer.address().port}`,
+    },
+  });
+  assert.equal(blockedAnonymousSession.status, 429);
+  assert.equal(
+    blockedAnonymousSession.headers.get('set-cookie'),
+    null,
+    'rate-limited anonymous GET does not persist or issue a session',
+  );
+  const sessionCountAfter = Number(
+    (await pool.query('SELECT count(*) FROM cms_sessions')).rows[0].count,
+  );
+  assert.equal(sessionCountAfter - sessionCountBefore, 20);
+
   assert.equal(
     (await adminRequest(`/api/admin/files/${cvUpload.data.id}`, { method: 'DELETE' })).response
       .status,
@@ -529,4 +597,5 @@ test('PostgreSQL CMS authentication, publishing, CRUD, dashboard, inbox, and loc
   );
   const pageAfterLogout = await request('/admin/dashboard', { cookie: admin.cookie });
   assert.equal(pageAfterLogout.response.status, 302);
+  assertAdminFrameHeaders(pageAfterLogout.response);
 });

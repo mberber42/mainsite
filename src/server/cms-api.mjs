@@ -1,12 +1,13 @@
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
-import { createReadStream } from 'node:fs';
-import { mkdir, readFile, realpath, unlink } from 'node:fs/promises';
+import { constants, createReadStream } from 'node:fs';
+import { access, mkdir, readFile, realpath, stat, unlink } from 'node:fs/promises';
 import { isAbsolute, join, resolve } from 'node:path';
 import express from 'express';
 import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
 import multer from 'multer';
 import { Pool } from 'pg';
+import { fixedWindowAllow, pruneExpiredThrottleEntries } from './rate-limit.mjs';
 import { authenticateAdmin } from './security.mjs';
 
 const CONTENT_KINDS = new Set([
@@ -25,10 +26,19 @@ const MAX_CV_BYTES = 8 * 1024 * 1024;
 const COOKIE_NAME = 'mainsite.sid';
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_MAX_ATTEMPTS = 8;
+const ANONYMOUS_SESSION_WINDOW_MS = 60 * 1000;
+const ANONYMOUS_SESSION_MAX_ATTEMPTS = 20;
 const CONTACT_WINDOW_MS = 60 * 1000;
 const CONTACT_MAX_ATTEMPTS = 5;
 const loginAttempts = new Map();
+const anonymousSessionAttempts = new Map();
 const contactAttempts = new Map();
+const throttleAttemptMaps = [loginAttempts, anonymousSessionAttempts, contactAttempts];
+const throttleCleanupTimer = setInterval(() => {
+  const now = Date.now();
+  for (const attempts of throttleAttemptMaps) pruneExpiredThrottleEntries(attempts, now);
+}, 60 * 1000);
+throttleCleanupTimer.unref();
 
 class HttpError extends Error {
   constructor(status, code) {
@@ -249,6 +259,17 @@ async function ensureUploadDirectory(config) {
   ) {
     fail(503, 'cms_upload_dir_must_be_persistent');
   }
+  const details = await stat(actualPath);
+  if (!details.isDirectory()) fail(503, 'cms_upload_dir_not_a_directory');
+  const mode = details.mode & 0o777;
+  if ((mode & 0o077) !== 0 || (mode & 0o700) !== 0o700) {
+    fail(503, 'cms_upload_dir_permissions_unsafe');
+  }
+  try {
+    await access(actualPath, constants.R_OK | constants.W_OK | constants.X_OK);
+  } catch {
+    fail(503, 'cms_upload_dir_not_accessible');
+  }
   return actualPath;
 }
 
@@ -287,21 +308,27 @@ function saveSession(req) {
   );
 }
 
+async function ensureCsrfSession(req) {
+  if (req.session.csrfToken) return;
+  if (
+    !req.session.admin?.id &&
+    !fixedWindowAllow(
+      anonymousSessionAttempts,
+      req.ip || 'unknown',
+      ANONYMOUS_SESSION_WINDOW_MS,
+      ANONYMOUS_SESSION_MAX_ATTEMPTS,
+    )
+  ) {
+    fail(429, 'anonymous_session_rate_limited');
+  }
+  req.session.csrfToken = csrfToken();
+  await saveSession(req);
+}
+
 function regenerateSession(req) {
   return new Promise((resolve, reject) =>
     req.session.regenerate((error) => (error ? reject(error) : resolve())),
   );
-}
-
-function fixedWindowAllow(map, key, windowMs, maxAttempts) {
-  const now = Date.now();
-  const entry = map.get(key);
-  if (!entry || entry.until <= now) {
-    map.set(key, { count: 1, until: now + windowMs });
-    return true;
-  }
-  entry.count += 1;
-  return entry.count <= maxAttempts;
 }
 
 function setSecurityHeaders(_req, res, next) {
@@ -310,6 +337,11 @@ function setSecurityHeaders(_req, res, next) {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Cache-Control', 'no-store');
   next();
+}
+
+function setAdminHtmlSecurityHeaders(req, res) {
+  setSecurityHeaders(req, res, () => {});
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'none'");
 }
 
 function requireAdmin(req, _res, next) {
@@ -745,14 +777,12 @@ function sendFile(res, file, uploadDir, isPublic) {
 
 function authRouter(router, pool, production) {
   router.get('/api/auth/csrf', async (req, res) => {
-    req.session.csrfToken ??= csrfToken();
-    await saveSession(req);
+    await ensureCsrfSession(req);
     res.json({ csrfToken: req.session.csrfToken });
   });
 
   router.get('/api/auth/session', async (req, res) => {
-    req.session.csrfToken ??= csrfToken();
-    await saveSession(req);
+    await ensureCsrfSession(req);
     if (!req.session.admin?.id)
       return res.json({ authenticated: false, csrfToken: req.session.csrfToken });
     res.json({
@@ -887,6 +917,7 @@ export function createCmsMiddleware(options = {}) {
     const isApi = req.path === '/api' || req.path.startsWith('/api/');
     const isAdmin = req.path === '/admin' || req.path.startsWith('/admin/');
     if (!isApi && !isAdmin) return next();
+    if (isAdmin) setAdminHtmlSecurityHeaders(req, res);
     try {
       const active = await initialize();
       active.sessions(req, res, (sessionError) => {
