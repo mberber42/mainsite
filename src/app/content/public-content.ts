@@ -19,7 +19,11 @@ export interface ServicePlaceholder {
   readonly status: LocalizedText;
 }
 
-export interface BlogPost {
+type CoverImageFields =
+  | { readonly coverImage: string; readonly coverAlt: LocalizedText }
+  | { readonly coverImage?: never; readonly coverAlt?: never };
+
+export type BlogPost = {
   readonly slug: string;
   readonly title: LocalizedText;
   readonly summary: LocalizedText;
@@ -27,20 +31,18 @@ export interface BlogPost {
   readonly category?: LocalizedText;
   readonly tags?: readonly LocalizedText[];
   readonly publishedAt?: string;
-  readonly coverImage?: string;
   readonly readingMinutes?: number;
-}
+} & CoverImageFields;
 
-export interface LabProject {
+export type LabProject = {
   readonly slug: string;
   readonly title: LocalizedText;
   readonly summary: LocalizedText;
   readonly description: readonly LocalizedText[];
   readonly category?: LocalizedText;
   readonly tags?: readonly LocalizedText[];
-  readonly coverImage?: string;
   readonly links?: readonly { label: LocalizedText; href: string }[];
-}
+} & CoverImageFields;
 
 export const PROFILE_CONTENT = {
   biography: {
@@ -164,7 +166,6 @@ export interface PublicCopy {
     readonly backToList: string;
     readonly notFoundTitle: string;
     readonly notFoundBody: string;
-    readonly coverAlt: string;
   };
   readonly lab: {
     readonly eyebrow: string;
@@ -178,7 +179,6 @@ export interface PublicCopy {
     readonly backToList: string;
     readonly notFoundTitle: string;
     readonly notFoundBody: string;
-    readonly coverAlt: string;
     readonly projectLink: string;
   };
   readonly contact: {
@@ -255,7 +255,6 @@ export const PUBLIC_COPY: Record<Locale, PublicCopy> = {
       backToList: 'Tüm yazılara dön',
       notFoundTitle: 'Bu yazı bulunamadı',
       notFoundBody: 'Bağlantı hatalı olabilir veya bu yazı yayımlanmamış olabilir.',
-      coverAlt: 'Yazı kapağı',
     },
     lab: {
       eyebrow: 'Deneyler',
@@ -269,7 +268,6 @@ export const PUBLIC_COPY: Record<Locale, PublicCopy> = {
       backToList: 'Lab listesine dön',
       notFoundTitle: 'Bu Lab kaydı bulunamadı',
       notFoundBody: 'Bağlantı hatalı olabilir veya bu kayıt henüz eklenmemiş olabilir.',
-      coverAlt: 'Proje kapağı',
       projectLink: 'Projeyi aç',
     },
     contact: {
@@ -346,7 +344,6 @@ export const PUBLIC_COPY: Record<Locale, PublicCopy> = {
       backToList: 'Back to all articles',
       notFoundTitle: 'Article not found',
       notFoundBody: 'The link may be incorrect or the article may not be published.',
-      coverAlt: 'Article cover',
     },
     lab: {
       eyebrow: 'Experiments',
@@ -360,7 +357,6 @@ export const PUBLIC_COPY: Record<Locale, PublicCopy> = {
       backToList: 'Back to the Lab list',
       notFoundTitle: 'Lab entry not found',
       notFoundBody: 'The link may be incorrect or this entry may not have been added yet.',
-      coverAlt: 'Project cover',
       projectLink: 'Open project',
     },
     contact: {

@@ -7,7 +7,11 @@
     />
     <article class="surface-card detail-article">
       @if (article.coverImage) {
-        <img class="detail-article__cover" [src]="article.coverImage" [alt]="copy().coverAlt" />
+        <img
+          class="detail-article__cover"
+          [src]="article.coverImage"
+          [alt]="localized(article.coverAlt)"
+        />
       }
       <div class="detail-meta">
         @if (article.category) {

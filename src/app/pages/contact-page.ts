@@ -1,8 +1,21 @@
 import { Component, computed, inject } from '@angular/core';
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+  ValidatorFn,
+  Validators,
+} from '@angular/forms';
 import { PUBLIC_COPY } from '../content/public-content';
 import { LocaleService } from '../i18n/locale.service';
 import { PageIntroComponent } from './page-intro';
+
+const trimmedRequired: ValidatorFn = (control) => {
+  if (typeof control.value !== 'string' || control.value.trim().length === 0) {
+    return { required: true };
+  }
+  return null;
+};
 
 @Component({
   imports: [PageIntroComponent, ReactiveFormsModule],
@@ -14,12 +27,12 @@ export class ContactPageComponent {
   protected readonly locale = this.localeService.locale;
   protected readonly copy = computed(() => PUBLIC_COPY[this.locale()].contact);
   protected readonly form = new FormGroup({
-    name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    name: new FormControl('', { nonNullable: true, validators: [trimmedRequired] }),
     email: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required, Validators.email],
+      validators: [trimmedRequired, Validators.email],
     }),
-    message: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    message: new FormControl('', { nonNullable: true, validators: [trimmedRequired] }),
   });
   protected submitAttempted = false;
   protected validated = false;

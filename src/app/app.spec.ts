@@ -3,6 +3,7 @@ import { Router, provideRouter } from '@angular/router';
 import { vi } from 'vitest';
 import { App } from './app';
 import { routes } from './app.routes';
+import { BLOG_POSTS, LAB_PROJECTS, type BlogPost, type LabProject } from './content/public-content';
 
 const bilingualRoutes = [
   { path: '/hakkimda', tr: 'Hakkımda', en: 'About' },
@@ -107,6 +108,77 @@ describe('public routes', () => {
     expect(page.textContent).toContain('Henüz Lab kaydı yok');
   });
 
+  it('uses each Blog and Lab cover alt in the selected locale in list and detail views', async () => {
+    const blogPosts = BLOG_POSTS as unknown as BlogPost[];
+    const labProjects = LAB_PROJECTS as unknown as LabProject[];
+    const initialBlogPostsLength = blogPosts.length;
+    const initialLabProjectsLength = labProjects.length;
+    blogPosts.push({
+      slug: 'cover-alt-review',
+      title: { tr: 'Test yazısı', en: 'Test article' },
+      summary: { tr: 'Test özeti', en: 'Test summary' },
+      body: [],
+      coverImage: '/test-blog-cover.png',
+      coverAlt: { tr: 'Yazı kapağının Türkçe açıklaması', en: 'Blog cover description in English' },
+    });
+    labProjects.push({
+      slug: 'cover-alt-review',
+      title: { tr: 'Test projesi', en: 'Test project' },
+      summary: { tr: 'Test özeti', en: 'Test summary' },
+      description: [],
+      coverImage: '/test-lab-cover.png',
+      coverAlt: { tr: 'Proje kapağının Türkçe açıklaması', en: 'Lab cover description in English' },
+    });
+
+    try {
+      const { fixture, router, page } = await createApp();
+      const coverRoutes = [
+        {
+          path: '/blog',
+          tr: 'Yazı kapağının Türkçe açıklaması',
+          en: 'Blog cover description in English',
+        },
+        {
+          path: '/blog/cover-alt-review',
+          tr: 'Yazı kapağının Türkçe açıklaması',
+          en: 'Blog cover description in English',
+        },
+        {
+          path: '/lab',
+          tr: 'Proje kapağının Türkçe açıklaması',
+          en: 'Lab cover description in English',
+        },
+        {
+          path: '/lab/cover-alt-review',
+          tr: 'Proje kapağının Türkçe açıklaması',
+          en: 'Lab cover description in English',
+        },
+      ] as const;
+
+      for (const route of coverRoutes) {
+        await router.navigateByUrl(route.path);
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
+        expect(page.querySelector<HTMLImageElement>('img')?.alt).toBe(route.tr);
+
+        if (route.path === '/blog' || route.path === '/lab') {
+          expect(page.querySelector('.content-grid')?.hasAttribute('aria-label')).toBe(false);
+        }
+
+        page.querySelector<HTMLButtonElement>('[aria-label="İngilizce diline geç"]')?.click();
+        fixture.detectChanges();
+        expect(page.querySelector<HTMLImageElement>('img')?.alt).toBe(route.en);
+        expect(router.url).toBe(route.path);
+        page.querySelector<HTMLButtonElement>('[aria-label="Switch language to Turkish"]')?.click();
+        fixture.detectChanges();
+      }
+    } finally {
+      blogPosts.splice(initialBlogPostsLength);
+      labProjects.splice(initialLabProjectsLength);
+    }
+  });
+
   it('validates contact fields accessibly and never transmits or stores a message', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
     const storageLength = localStorage.length;
@@ -140,6 +212,21 @@ describe('public routes', () => {
 
     email.value = 'mustafa@example.test';
     email.dispatchEvent(new Event('input', { bubbles: true }));
+    name.value = '   ';
+    name.dispatchEvent(new Event('input', { bubbles: true }));
+    message.value = ' \n\t ';
+    message.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    page.querySelector<HTMLButtonElement>('form button[type="submit"]')?.click();
+    fixture.detectChanges();
+    expect(page.querySelector('#name-error')?.textContent).toContain('zorunludur');
+    expect(page.querySelector('#message-error')?.textContent).toContain('zorunludur');
+    expect(page.textContent).not.toContain('Alanlar doğrulandı; mesaj gönderilmedi');
+
+    name.value = 'Mustafa';
+    name.dispatchEvent(new Event('input', { bubbles: true }));
+    message.value = 'Test message';
+    message.dispatchEvent(new Event('input', { bubbles: true }));
     fixture.detectChanges();
     page.querySelector<HTMLButtonElement>('form button[type="submit"]')?.click();
     fixture.detectChanges();

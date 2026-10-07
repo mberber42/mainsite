@@ -6,11 +6,15 @@
   />
 
   @if (projects.length) {
-    <div class="content-grid content-grid--three" aria-label="{{ copy().title }}">
+    <div class="content-grid content-grid--three">
       @for (project of projects; track project.slug) {
         <article class="surface-card content-panel content-card">
           @if (project.coverImage) {
-            <img class="content-card__cover" [src]="project.coverImage" [alt]="copy().coverAlt" />
+            <img
+              class="content-card__cover"
+              [src]="project.coverImage"
+              [alt]="localized(project.coverAlt)"
+            />
           }
           @if (project.category) {
             <span class="placeholder-label">{{ localized(project.category) }}</span>
