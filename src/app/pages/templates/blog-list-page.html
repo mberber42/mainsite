@@ -1,0 +1,46 @@
+<div class="content-page page-wrap">
+  <app-page-intro
+    [eyebrow]="copy().eyebrow"
+    [title]="copy().title"
+    [description]="copy().description"
+  />
+
+  @if (posts.length) {
+    <div class="content-grid content-grid--three">
+      @for (post of posts; track post.slug) {
+        <article class="surface-card content-panel content-card">
+          @if (post.coverImage) {
+            <img
+              class="content-card__cover"
+              [src]="post.coverImage"
+              [alt]="localized(post.coverAlt)"
+            />
+          }
+          @if (post.category) {
+            <span class="placeholder-label">{{ localized(post.category) }}</span>
+          }
+          <h2>
+            <a [routerLink]="['/blog', post.slug]">{{ localized(post.title) }}</a>
+          </h2>
+          <p>{{ localized(post.summary) }}</p>
+          @if (post.publishedAt || post.readingMinutes) {
+            <p class="content-meta">
+              @if (post.publishedAt) {
+                <time [attr.datetime]="post.publishedAt">{{ post.publishedAt }}</time>
+              }
+              @if (post.readingMinutes) {
+                <span>{{ post.readingMinutes }} {{ copy().readingTimeLabel }}</span>
+              }
+            </p>
+          }
+        </article>
+      }
+    </div>
+  } @else {
+    <section class="surface-card empty-state" aria-labelledby="blog-empty-title">
+      <p class="eyebrow">{{ copy().eyebrow }}</p>
+      <h2 id="blog-empty-title">{{ copy().emptyTitle }}</h2>
+      <p>{{ copy().emptyBody }}</p>
+    </section>
+  }
+</div>

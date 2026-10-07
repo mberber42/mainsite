@@ -1,115 +1,86 @@
-<main id="main-content">
-  <section
-    class="hero-section page-wrap mx-auto max-w-7xl px-5"
-    id="top"
-    aria-labelledby="hero-title"
-  >
-    <div class="hero-copy">
-      <p class="eyebrow">
-        <span class="eyebrow__mark" aria-hidden="true"></span>{{ copy().hero.eyebrow }}
-      </p>
-      <p class="availability-pill">
-        <span class="availability-pill__dot" aria-hidden="true"></span>
-        {{ copy().hero.availability }}
-      </p>
-      <h1 class="hero-title" id="hero-title">
-        <span>{{ identity.name }}</span>
-        <span class="hero-title__role">{{ identity.title }}</span>
-      </h1>
-      <p class="hero-value" data-testid="hero-value">{{ copy().hero.value }}</p>
-      <p class="hero-description">{{ copy().hero.description }}</p>
-      <div class="hero-actions">
-        @for (action of copy().hero.actions; track action.href) {
-          <a
-            class="button"
-            [class.button--primary]="action.kind === 'primary'"
-            [class.button--secondary]="action.kind === 'secondary'"
-            [href]="action.href"
-          >
-            {{ action.label }}
-            <span class="button__arrow" aria-hidden="true">↗</span>
-          </a>
-        }
-      </div>
-    </div>
-
-    <div class="hero-art" aria-hidden="true">
-      <div class="hero-art__glow"></div>
-      <div class="hero-art__grid"></div>
-      <div class="hero-art__orbit hero-art__orbit--outer"></div>
-      <div class="hero-art__orbit hero-art__orbit--inner"></div>
-      <div class="hero-art__core"><span>MB</span></div>
-      <span class="hero-art__spark hero-art__spark--one"></span>
-      <span class="hero-art__spark hero-art__spark--two"></span>
-      <span class="hero-art__caption hero-art__caption--top">01 / 04</span>
-      <span class="hero-art__caption hero-art__caption--bottom">{{
-        copy().hero.visualCaption
-      }}</span>
-    </div>
-  </section>
-
-  <section class="section-block page-wrap" id="explore" aria-labelledby="pathways-title">
-    <div class="section-heading">
-      <div>
-        <p class="eyebrow">{{ copy().pathways.eyebrow }}</p>
-        <h2 id="pathways-title">{{ copy().pathways.title }}</h2>
-      </div>
-      <p class="section-heading__description">{{ copy().pathways.description }}</p>
-    </div>
-    <div class="pathway-grid">
-      @for (card of copy().pathways.cards; track card.index) {
-        <a class="surface-card pathway-card" [href]="card.href">
-          <span class="pathway-card__index">{{ card.index }}</span>
-          <span class="pathway-card__arrow" aria-hidden="true">↗</span>
-          <h3>{{ card.title }}</h3>
-          <p>{{ card.description }}</p>
-          <span class="placeholder-label">{{ card.status }}</span>
+<section
+  class="hero-section page-wrap mx-auto max-w-7xl px-5"
+  id="top"
+  aria-labelledby="hero-title"
+>
+  <div class="hero-copy">
+    <p class="eyebrow">
+      <span class="eyebrow__mark" aria-hidden="true"></span>{{ copy().hero.eyebrow }}
+    </p>
+    <p class="availability-pill">
+      <span class="availability-pill__dot" aria-hidden="true"></span>
+      {{ copy().hero.availability }}
+    </p>
+    <h1 class="hero-title" id="hero-title">
+      <span>{{ identity.name }}</span>
+      <span class="hero-title__role">{{ identity.title }}</span>
+    </h1>
+    <p class="hero-value" data-testid="hero-value">{{ copy().hero.value }}</p>
+    <p class="hero-description">{{ copy().hero.description }}</p>
+    <div class="hero-actions">
+      @for (action of copy().hero.actions; track action.href) {
+        <a
+          class="button"
+          [class.button--primary]="action.kind === 'primary'"
+          [class.button--secondary]="action.kind === 'secondary'"
+          [routerLink]="action.href"
+        >
+          {{ action.label }}
+          <span class="button__arrow" aria-hidden="true">↗</span>
         </a>
       }
     </div>
-  </section>
+  </div>
 
-  <section class="section-block section-block--work" id="work" aria-labelledby="projects-title">
-    <div class="page-wrap">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">{{ copy().projects.eyebrow }}</p>
-          <h2 id="projects-title">{{ copy().projects.title }}</h2>
-        </div>
-        <p class="section-heading__description">{{ copy().projects.description }}</p>
-      </div>
-      <div class="preview-grid">
-        @for (card of copy().projects.cards; track card.title) {
-          <article class="surface-card preview-card">
-            <div class="preview-card__topline">
-              <span class="placeholder-label">{{ card.label }}</span>
-              <span class="preview-card__ornament" aria-hidden="true">✳</span>
-            </div>
-            <div class="preview-card__body">
-              <h3>{{ card.title }}</h3>
-              <p>{{ card.description }}</p>
-            </div>
-            <span class="preview-card__meta">{{ card.meta }}</span>
-          </article>
-        }
-      </div>
+  <div class="hero-art" aria-hidden="true">
+    <div class="hero-art__glow"></div>
+    <div class="hero-art__grid"></div>
+    <div class="hero-art__orbit hero-art__orbit--outer"></div>
+    <div class="hero-art__orbit hero-art__orbit--inner"></div>
+    <div class="hero-art__core"><span>MB</span></div>
+    <span class="hero-art__spark hero-art__spark--one"></span>
+    <span class="hero-art__spark hero-art__spark--two"></span>
+    <span class="hero-art__caption hero-art__caption--top">01 / 04</span>
+    <span class="hero-art__caption hero-art__caption--bottom">{{ copy().hero.visualCaption }}</span>
+  </div>
+</section>
+
+<section class="section-block page-wrap" id="explore" aria-labelledby="pathways-title">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow">{{ copy().pathways.eyebrow }}</p>
+      <h2 id="pathways-title">{{ copy().pathways.title }}</h2>
     </div>
-  </section>
+    <p class="section-heading__description">{{ copy().pathways.description }}</p>
+  </div>
+  <div class="pathway-grid">
+    @for (card of copy().pathways.cards; track card.index) {
+      <a class="surface-card pathway-card" [routerLink]="card.href">
+        <span class="pathway-card__index">{{ card.index }}</span>
+        <span class="pathway-card__arrow" aria-hidden="true">↗</span>
+        <h3>{{ card.title }}</h3>
+        <p>{{ card.description }}</p>
+        <span class="placeholder-label">{{ card.status }}</span>
+      </a>
+    }
+  </div>
+</section>
 
-  <section class="section-block page-wrap" id="writing" aria-labelledby="writing-title">
+<section class="section-block section-block--work" id="work" aria-labelledby="projects-title">
+  <div class="page-wrap">
     <div class="section-heading">
       <div>
-        <p class="eyebrow">{{ copy().writing.eyebrow }}</p>
-        <h2 id="writing-title">{{ copy().writing.title }}</h2>
+        <p class="eyebrow">{{ copy().projects.eyebrow }}</p>
+        <h2 id="projects-title">{{ copy().projects.title }}</h2>
       </div>
-      <p class="section-heading__description">{{ copy().writing.description }}</p>
+      <p class="section-heading__description">{{ copy().projects.description }}</p>
     </div>
     <div class="preview-grid">
-      @for (card of copy().writing.cards; track card.title) {
-        <article class="surface-card preview-card preview-card--writing">
+      @for (card of copy().projects.cards; track card.title) {
+        <article class="surface-card preview-card">
           <div class="preview-card__topline">
             <span class="placeholder-label">{{ card.label }}</span>
-            <span class="preview-card__ornament" aria-hidden="true">↗</span>
+            <span class="preview-card__ornament" aria-hidden="true">✳</span>
           </div>
           <div class="preview-card__body">
             <h3>{{ card.title }}</h3>
@@ -119,19 +90,44 @@
         </article>
       }
     </div>
-  </section>
+  </div>
+</section>
 
-  <section class="contact-section page-wrap" id="contact" aria-labelledby="contact-title">
-    <div class="contact-panel surface-card">
-      <div>
-        <p class="eyebrow">{{ copy().contact.eyebrow }}</p>
-        <h2 id="contact-title">{{ copy().contact.title }}</h2>
-        <p>{{ copy().contact.description }}</p>
-      </div>
-      <span class="contact-status">
-        <span class="availability-pill__dot" aria-hidden="true"></span>
-        {{ copy().contact.status }}
-      </span>
+<section class="section-block page-wrap" id="writing" aria-labelledby="writing-title">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow">{{ copy().writing.eyebrow }}</p>
+      <h2 id="writing-title">{{ copy().writing.title }}</h2>
     </div>
-  </section>
-</main>
+    <p class="section-heading__description">{{ copy().writing.description }}</p>
+  </div>
+  <div class="preview-grid">
+    @for (card of copy().writing.cards; track card.title) {
+      <article class="surface-card preview-card preview-card--writing">
+        <div class="preview-card__topline">
+          <span class="placeholder-label">{{ card.label }}</span>
+          <span class="preview-card__ornament" aria-hidden="true">↗</span>
+        </div>
+        <div class="preview-card__body">
+          <h3>{{ card.title }}</h3>
+          <p>{{ card.description }}</p>
+        </div>
+        <span class="preview-card__meta">{{ card.meta }}</span>
+      </article>
+    }
+  </div>
+</section>
+
+<section class="contact-section page-wrap" id="contact" aria-labelledby="contact-title">
+  <div class="contact-panel surface-card">
+    <div>
+      <p class="eyebrow">{{ copy().contact.eyebrow }}</p>
+      <h2 id="contact-title">{{ copy().contact.title }}</h2>
+      <p>{{ copy().contact.description }}</p>
+    </div>
+    <span class="contact-status">
+      <span class="availability-pill__dot" aria-hidden="true"></span>
+      {{ copy().contact.status }}
+    </span>
+  </div>
+</section>

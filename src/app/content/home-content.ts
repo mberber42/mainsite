@@ -95,9 +95,11 @@ export const HOME_CONTENT: Record<Locale, HomeCopy> = {
       socialLinks: 'Sosyal bağlantılar',
     },
     navigation: [
-      { label: 'Seçili işler', href: '#work' },
-      { label: 'Hizmetler', href: '#explore' },
-      { label: 'Blog & Lab', href: '#writing' },
+      { label: 'Hakkımda', href: '/hakkimda' },
+      { label: 'Hizmetler', href: '/hizmetler' },
+      { label: 'Blog', href: '/blog' },
+      { label: 'Lab', href: '/lab' },
+      { label: 'İletişim', href: '/iletisim' },
     ],
     hero: {
       eyebrow: 'Tasarım, kod ve dijital ürünler',
@@ -107,9 +109,9 @@ export const HOME_CONTENT: Record<Locale, HomeCopy> = {
       description:
         'Fikirden çalışan ürüne uzanan süreçte; netlik, özen ve sürdürülebilirliği merkeze alan bir yaklaşım.',
       actions: [
-        { label: 'Projeleri keşfet', href: '#work', kind: 'primary' },
-        { label: 'Hizmetleri gör', href: '#explore', kind: 'secondary' },
-        { label: 'İletişim alanına git', href: '#contact', kind: 'secondary' },
+        { label: 'Projeleri keşfet', href: '/lab', kind: 'primary' },
+        { label: 'Hizmetleri gör', href: '/hizmetler', kind: 'secondary' },
+        { label: 'İletişim alanına git', href: '/iletisim', kind: 'secondary' },
       ],
     },
     pathways: {
@@ -203,9 +205,11 @@ export const HOME_CONTENT: Record<Locale, HomeCopy> = {
       socialLinks: 'Social links',
     },
     navigation: [
-      { label: 'Selected work', href: '#work' },
-      { label: 'Services', href: '#explore' },
-      { label: 'Blog & Lab', href: '#writing' },
+      { label: 'About', href: '/hakkimda' },
+      { label: 'Services', href: '/hizmetler' },
+      { label: 'Blog', href: '/blog' },
+      { label: 'Lab', href: '/lab' },
+      { label: 'Contact', href: '/iletisim' },
     ],
     hero: {
       eyebrow: 'Design, code and digital products',
@@ -215,9 +219,9 @@ export const HOME_CONTENT: Record<Locale, HomeCopy> = {
       description:
         'From idea to working product, with a focus on clarity, care and long-term maintainability.',
       actions: [
-        { label: 'Explore selected work', href: '#work', kind: 'primary' },
-        { label: 'Explore services', href: '#explore', kind: 'secondary' },
-        { label: 'Go to contact', href: '#contact', kind: 'secondary' },
+        { label: 'Explore projects', href: '/lab', kind: 'primary' },
+        { label: 'Explore services', href: '/hizmetler', kind: 'secondary' },
+        { label: 'Go to contact', href: '/iletisim', kind: 'secondary' },
       ],
     },
     pathways: {

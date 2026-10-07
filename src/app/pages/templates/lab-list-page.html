@@ -1,0 +1,36 @@
+<div class="content-page page-wrap">
+  <app-page-intro
+    [eyebrow]="copy().eyebrow"
+    [title]="copy().title"
+    [description]="copy().description"
+  />
+
+  @if (projects.length) {
+    <div class="content-grid content-grid--three">
+      @for (project of projects; track project.slug) {
+        <article class="surface-card content-panel content-card">
+          @if (project.coverImage) {
+            <img
+              class="content-card__cover"
+              [src]="project.coverImage"
+              [alt]="localized(project.coverAlt)"
+            />
+          }
+          @if (project.category) {
+            <span class="placeholder-label">{{ localized(project.category) }}</span>
+          }
+          <h2>
+            <a [routerLink]="['/lab', project.slug]">{{ localized(project.title) }}</a>
+          </h2>
+          <p>{{ localized(project.summary) }}</p>
+        </article>
+      }
+    </div>
+  } @else {
+    <section class="surface-card empty-state" aria-labelledby="lab-empty-title">
+      <p class="eyebrow">{{ copy().eyebrow }}</p>
+      <h2 id="lab-empty-title">{{ copy().emptyTitle }}</h2>
+      <p>{{ copy().emptyBody }}</p>
+    </section>
+  }
+</div>

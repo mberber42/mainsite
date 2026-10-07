@@ -1,8 +1,10 @@
 import { Component, computed, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { HOME_CONTENT, SITE_IDENTITY } from '../content/home-content';
 import { LocaleService } from '../i18n/locale.service';
 
 @Component({
+  imports: [RouterLink],
   selector: 'app-home-page',
   styleUrl: './home-page.css',
   templateUrl: './home-page.html',

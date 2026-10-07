@@ -1,0 +1,52 @@
+<div class="content-page page-wrap">
+  @if (project(); as entry) {
+    <app-page-intro
+      [eyebrow]="copy().eyebrow"
+      [title]="localized(entry.title)"
+      [description]="localized(entry.summary)"
+    />
+    <article class="surface-card detail-article">
+      @if (entry.coverImage) {
+        <img
+          class="detail-article__cover"
+          [src]="entry.coverImage"
+          [alt]="localized(entry.coverAlt)"
+        />
+      }
+      <div class="detail-meta">
+        @if (entry.category) {
+          <span class="placeholder-label">{{ localized(entry.category) }}</span>
+        }
+      </div>
+      @if (entry.tags?.length) {
+        <ul class="tag-list" aria-label="{{ copy().tagsLabel }}">
+          @for (tag of entry.tags; track tag.tr) {
+            <li>{{ localized(tag) }}</li>
+          }
+        </ul>
+      }
+      <div class="detail-article__body">
+        @for (paragraph of entry.description; track $index) {
+          <p>{{ localized(paragraph) }}</p>
+        }
+      </div>
+      @if (entry.links?.length) {
+        <nav class="project-links" aria-label="{{ copy().detailsLabel }}">
+          @for (link of entry.links; track link.href) {
+            <a class="button button--secondary" [href]="link.href" target="_blank" rel="noreferrer">
+              {{ localized(link.label) }} <span aria-hidden="true">↗</span>
+            </a>
+          }
+        </nav>
+      }
+    </article>
+    <a class="text-link" routerLink="/lab">← {{ copy().backToList }}</a>
+  } @else {
+    <app-page-intro
+      [eyebrow]="'404 · ' + copy().eyebrow"
+      [title]="copy().notFoundTitle"
+      [description]="copy().notFoundBody"
+    />
+    <a class="button button--secondary" routerLink="/lab">{{ copy().backToList }}</a>
+  }
+</div>
