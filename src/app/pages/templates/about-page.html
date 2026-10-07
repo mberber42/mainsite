@@ -1,0 +1,87 @@
+<div class="content-page page-wrap">
+  <app-page-intro
+    [eyebrow]="copy().eyebrow"
+    [title]="copy().title"
+    [description]="copy().description"
+  />
+
+  <div class="content-grid content-grid--about">
+    <section class="surface-card content-panel" aria-labelledby="biography-title">
+      <p class="eyebrow">{{ copy().biographyTitle }}</p>
+      <h2 id="biography-title">{{ identity.name }} · {{ identity.title }}</h2>
+      <p class="content-panel__body">{{ profile.biography[locale()] }}</p>
+    </section>
+
+    <section class="surface-card content-panel" aria-labelledby="experience-title">
+      <p class="eyebrow">{{ copy().experienceTitle }}</p>
+      <h2 id="experience-title">{{ copy().experienceTitle }}</h2>
+      @if (profile.experience.length) {
+        <ol class="timeline-list">
+          @for (entry of profile.experience; track $index) {
+            <li class="timeline-list__item">
+              <h3>{{ entry.title[locale()] }}</h3>
+              @if (entry.organization) {
+                <p>{{ entry.organization[locale()] }}</p>
+              }
+              @if (entry.period) {
+                <p class="content-meta">{{ entry.period[locale()] }}</p>
+              }
+              @if (entry.description) {
+                <p>{{ entry.description[locale()] }}</p>
+              }
+            </li>
+          }
+        </ol>
+      } @else {
+        <p class="empty-copy">{{ copy().experienceEmpty }}</p>
+      }
+    </section>
+
+    <section class="surface-card content-panel" aria-labelledby="expertise-title">
+      <p class="eyebrow">{{ copy().expertiseTitle }}</p>
+      <h2 id="expertise-title">{{ copy().expertiseTitle }}</h2>
+      @if (profile.expertise.length) {
+        <ul class="tag-list">
+          @for (item of profile.expertise; track item.tr) {
+            <li>{{ item[locale()] }}</li>
+          }
+        </ul>
+      } @else {
+        <p class="empty-copy">{{ copy().expertiseEmpty }}</p>
+      }
+    </section>
+
+    <section class="surface-card content-panel" aria-labelledby="cv-title">
+      <p class="eyebrow">{{ copy().cvTitle }}</p>
+      <h2 id="cv-title">{{ copy().cvTitle }}</h2>
+      @if (profile.cvUrl) {
+        <a class="button button--secondary" [href]="profile.cvUrl" target="_blank" rel="noreferrer">
+          {{ copy().cvTitle }}
+        </a>
+      } @else {
+        <p class="empty-copy">{{ copy().cvUnavailable }}</p>
+      }
+    </section>
+
+    <section class="surface-card content-panel" aria-labelledby="social-title">
+      <p class="eyebrow">{{ copy().socialTitle }}</p>
+      <h2 id="social-title">{{ copy().socialTitle }}</h2>
+      <ul class="social-list social-list--profile">
+        @for (link of profile.socialLinks; track link.label) {
+          <li>
+            @if (link.href) {
+              <a class="social-list__item" [href]="link.href" target="_blank" rel="noreferrer">
+                {{ link.label }} <span aria-hidden="true">↗</span>
+              </a>
+            } @else {
+              <span class="social-list__item social-list__item--pending">
+                {{ link.label }}
+                <span class="social-list__status">{{ copy().socialUnavailable }}</span>
+              </span>
+            }
+          </li>
+        }
+      </ul>
+    </section>
+  </div>
+</div>

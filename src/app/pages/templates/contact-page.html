@@ -1,0 +1,88 @@
+<div class="content-page page-wrap">
+  <app-page-intro
+    [eyebrow]="copy().eyebrow"
+    [title]="copy().title"
+    [description]="copy().description"
+  />
+
+  <div class="contact-layout">
+    <section class="surface-card contact-form-card" aria-labelledby="contact-form-title">
+      <h2 id="contact-form-title">{{ copy().title }}</h2>
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <div class="form-field">
+          <label class="form-field__label" for="contact-name">{{ copy().nameLabel }}</label>
+          <input
+            class="form-field__control"
+            id="contact-name"
+            name="name"
+            type="text"
+            autocomplete="name"
+            formControlName="name"
+            [attr.aria-invalid]="errorMessage('name') ? 'true' : 'false'"
+            [attr.aria-describedby]="errorMessage('name') ? 'name-hint name-error' : 'name-hint'"
+          />
+          <p class="form-field__hint" id="name-hint">{{ copy().nameHint }}</p>
+          @if (errorMessage('name')) {
+            <p class="form-field__error" id="name-error" role="alert">{{ errorMessage('name') }}</p>
+          }
+        </div>
+
+        <div class="form-field">
+          <label class="form-field__label" for="contact-email">{{ copy().emailLabel }}</label>
+          <input
+            class="form-field__control"
+            id="contact-email"
+            name="email"
+            type="email"
+            autocomplete="email"
+            formControlName="email"
+            [attr.aria-invalid]="errorMessage('email') ? 'true' : 'false'"
+            [attr.aria-describedby]="
+              errorMessage('email') ? 'email-hint email-error' : 'email-hint'
+            "
+          />
+          <p class="form-field__hint" id="email-hint">{{ copy().emailHint }}</p>
+          @if (errorMessage('email')) {
+            <p class="form-field__error" id="email-error" role="alert">
+              {{ errorMessage('email') }}
+            </p>
+          }
+        </div>
+
+        <div class="form-field">
+          <label class="form-field__label" for="contact-message">{{ copy().messageLabel }}</label>
+          <textarea
+            class="form-field__control form-field__control--multiline"
+            id="contact-message"
+            name="message"
+            formControlName="message"
+            [attr.aria-invalid]="errorMessage('message') ? 'true' : 'false'"
+            [attr.aria-describedby]="
+              errorMessage('message') ? 'message-hint message-error' : 'message-hint'
+            "
+          ></textarea>
+          <p class="form-field__hint" id="message-hint">{{ copy().messageHint }}</p>
+          @if (errorMessage('message')) {
+            <p class="form-field__error" id="message-error" role="alert">
+              {{ errorMessage('message') }}
+            </p>
+          }
+        </div>
+
+        <button class="button button--primary" type="submit">{{ copy().sendButton }}</button>
+      </form>
+    </section>
+
+    <aside class="surface-card contact-note" aria-labelledby="contact-note-title">
+      <p class="eyebrow">{{ copy().noSendTitle }}</p>
+      <h2 id="contact-note-title">{{ copy().noSendTitle }}</h2>
+      <p>{{ copy().noSendBody }}</p>
+      @if (validated) {
+        <div class="validation-notice" role="status" aria-live="polite">
+          <h3>{{ copy().validatedTitle }}</h3>
+          <p>{{ copy().validatedBody }}</p>
+        </div>
+      }
+    </aside>
+  </div>
+</div>

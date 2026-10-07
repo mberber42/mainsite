@@ -1,0 +1,64 @@
+<div class="content-page page-wrap">
+  <app-page-intro
+    [eyebrow]="copy().eyebrow"
+    [title]="copy().title"
+    [description]="copy().description"
+  />
+
+  <section class="content-section" aria-labelledby="services-title">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">{{ copy().eyebrow }}</p>
+        <h2 id="services-title">{{ copy().cardsTitle }}</h2>
+      </div>
+    </div>
+    <div class="content-grid content-grid--three">
+      @for (service of serviceCards; track service.id) {
+        <article class="surface-card content-panel">
+          <span class="placeholder-label">{{ service.status[locale()] }}</span>
+          <h3>{{ service.title[locale()] }}</h3>
+          <p>{{ service.description[locale()] }}</p>
+        </article>
+      }
+    </div>
+  </section>
+
+  <section class="content-section" aria-labelledby="process-title">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">{{ copy().eyebrow }}</p>
+        <h2 id="process-title">{{ copy().processTitle }}</h2>
+      </div>
+    </div>
+    <ol class="process-list">
+      @for (step of processSteps; track step.id; let index = $index) {
+        <li class="surface-card process-card">
+          <span class="process-card__index">0{{ index + 1 }}</span>
+          <div>
+            <h3>{{ step.title[locale()] }}</h3>
+            <p>{{ step.description[locale()] }}</p>
+            <span class="placeholder-label">{{ step.status[locale()] }}</span>
+          </div>
+        </li>
+      }
+    </ol>
+  </section>
+
+  <section class="content-section" aria-labelledby="faq-title">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">{{ copy().eyebrow }}</p>
+        <h2 id="faq-title">{{ copy().faqTitle }}</h2>
+      </div>
+    </div>
+    <p class="surface-card empty-state">{{ copy().faqEmpty }}</p>
+  </section>
+
+  <section class="surface-card contact-cta" aria-labelledby="services-contact-title">
+    <div>
+      <h2 id="services-contact-title">{{ copy().contactTitle }}</h2>
+      <p>{{ copy().contactBody }}</p>
+    </div>
+    <a class="button button--primary" routerLink="/iletisim">{{ copy().contactCta }}</a>
+  </section>
+</div>

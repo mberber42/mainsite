@@ -1,0 +1,45 @@
+<div class="content-page page-wrap">
+  @if (post(); as article) {
+    <app-page-intro
+      [eyebrow]="copy().eyebrow"
+      [title]="localized(article.title)"
+      [description]="localized(article.summary)"
+    />
+    <article class="surface-card detail-article">
+      @if (article.coverImage) {
+        <img class="detail-article__cover" [src]="article.coverImage" [alt]="copy().coverAlt" />
+      }
+      <div class="detail-meta">
+        @if (article.category) {
+          <span class="placeholder-label">{{ localized(article.category) }}</span>
+        }
+        @if (article.publishedAt) {
+          <time [attr.datetime]="article.publishedAt">{{ article.publishedAt }}</time>
+        }
+        @if (article.readingMinutes) {
+          <span>{{ article.readingMinutes }} {{ copy().readingTimeLabel }}</span>
+        }
+      </div>
+      @if (article.tags?.length) {
+        <ul class="tag-list" aria-label="{{ copy().tagsLabel }}">
+          @for (tag of article.tags; track tag.tr) {
+            <li>{{ localized(tag) }}</li>
+          }
+        </ul>
+      }
+      <div class="detail-article__body">
+        @for (paragraph of article.body; track $index) {
+          <p>{{ localized(paragraph) }}</p>
+        }
+      </div>
+    </article>
+    <a class="text-link" routerLink="/blog">← {{ copy().backToList }}</a>
+  } @else {
+    <app-page-intro
+      [eyebrow]="'404 · ' + copy().eyebrow"
+      [title]="copy().notFoundTitle"
+      [description]="copy().notFoundBody"
+    />
+    <a class="button button--secondary" routerLink="/blog">{{ copy().backToList }}</a>
+  }
+</div>

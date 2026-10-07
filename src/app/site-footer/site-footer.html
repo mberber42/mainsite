@@ -1,24 +1,28 @@
 <footer class="site-footer">
   <div class="site-footer__inner page-wrap">
     <div class="site-footer__brand">
-      <span class="brand__mark" aria-hidden="true">MB</span>
-      <div>
-        <p class="site-footer__name">{{ identity.name }}</p>
-        <p class="site-footer__note">{{ copy().footerNote }}</p>
-      </div>
+      <a class="brand" routerLink="/" [attr.aria-label]="copy().accessibility.brandHome">
+        <span class="brand__mark" aria-hidden="true">MB</span>
+        <span class="brand__name">{{ identity.name }}</span>
+      </a>
+      <p class="site-footer__note">{{ copy().footerNote }}</p>
     </div>
 
-    <nav class="social-list" [attr.aria-label]="copy().accessibility.socialLinks">
+    <nav class="footer-nav" [attr.aria-label]="publicCopy().accessibility.primaryNavigation">
+      @for (item of copy().navigation; track item.href) {
+        <a class="footer-nav__link" [routerLink]="item.href">{{ item.label }}</a>
+      }
+    </nav>
+
+    <nav class="social-list" [attr.aria-label]="publicCopy().accessibility.socialNavigation">
       @for (link of socialLinks; track link.platform) {
         @if (link.href) {
           <a class="social-list__item" [href]="link.href" target="_blank" rel="noreferrer">
-            {{ link.platform }}
-            <span class="social-list__status">↗</span>
+            {{ link.platform }} <span class="social-list__status" aria-hidden="true">↗</span>
           </a>
         } @else {
           <span class="social-list__item social-list__item--pending">
-            {{ link.platform }}
-            <span class="social-list__status">{{ copy().socialPending }}</span>
+            {{ link.platform }} <span class="social-list__status">{{ copy().socialPending }}</span>
           </span>
         }
       }
