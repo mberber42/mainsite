@@ -24,3 +24,5 @@ The API checks the real upload directory, requires owner-only directory permissi
 ## Isolated tests
 
 The server test harness accepts only `TEST_DATABASE_URL` values whose database name ends in `_test`. Never supply a production database URL. CI creates an isolated PostgreSQL 16 service named `mainsite_test` and runs the same integration suite.
+
+For UI smoke, create a fresh disposable isolated test DB/admin fixture via documented bootstrap, transfer credentials only through an approved concealed input, and verify the real login flow; if secure handoff is unavailable, stop and mark evidence BLOCKED. Never use chat/shell arguments/environment/logs, bypass bootstrap/auth, or count synthetic sessions as login; clean up only that disposable fixture/DB and preserve unrelated test data.
