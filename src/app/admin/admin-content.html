@@ -1,0 +1,279 @@
+<section class="admin-page" aria-labelledby="content-page-title">
+  <div class="admin-page__heading">
+    <div>
+      <p class="admin-eyebrow">İçerik yönetimi</p>
+      <h1 id="content-page-title">{{ moduleLabel() }}</h1>
+    </div>
+    <button class="admin-button admin-button--primary" type="button" (click)="startNew()">
+      Yeni kayıt oluştur
+    </button>
+  </div>
+
+  <div class="admin-content-grid">
+    <section class="admin-panel admin-records" aria-labelledby="content-list-title">
+      <h2 id="content-list-title">
+        Kayıtlar <span class="admin-count">{{ entries().length }}</span>
+      </h2>
+      @if (loading()) {
+        <p class="admin-loading" role="status">Kayıtlar yükleniyor…</p>
+      } @else if (entries().length) {
+        <ul class="admin-list">
+          @for (entry of entries(); track entry.id) {
+            <li class="admin-record" [class.admin-record--selected]="editingId() === entry.id">
+              <button class="admin-record__open" type="button" (click)="edit(entry)">
+                <strong>{{ entry.title.tr }}</strong>
+                <small>{{ entry.slug }}</small>
+                <span
+                  class="admin-status"
+                  [class.admin-status--published]="entry.status === 'published'"
+                >
+                  {{ entry.status === 'published' ? 'Yayında' : 'Taslak' }}
+                </span>
+              </button>
+              <button
+                class="admin-icon-button"
+                type="button"
+                (click)="remove(entry)"
+                [attr.aria-label]="'Sil: ' + entry.title.tr"
+              >
+                Sil
+              </button>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="admin-empty">Bu modülde henüz kayıt yok. Yeni bir kayıt oluşturarak başlayın.</p>
+      }
+    </section>
+
+    <section class="admin-panel admin-editor" aria-labelledby="content-editor-title">
+      <h2 id="content-editor-title">{{ editingId() ? 'Kaydı düzenle' : 'Yeni kayıt' }}</h2>
+      <form class="admin-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+        <div class="admin-form__row">
+          <div class="admin-field">
+            <label for="content-title-tr">Başlık (Türkçe)</label>
+            <input
+              id="content-title-tr"
+              formControlName="titleTr"
+              required
+              maxlength="180"
+              autocomplete="off"
+            />
+          </div>
+          <div class="admin-field">
+            <label for="content-title-en">Başlık (English)</label>
+            <input
+              id="content-title-en"
+              formControlName="titleEn"
+              required
+              maxlength="180"
+              autocomplete="off"
+            />
+          </div>
+        </div>
+        <div class="admin-form__row">
+          <div class="admin-field">
+            <label for="content-slug">Slug (isteğe bağlı)</label>
+            <input id="content-slug" formControlName="slug" maxlength="120" autocomplete="off" />
+            <small>Boş bırakılırsa Türkçe başlıktan otomatik ve benzersiz slug oluşturulur.</small>
+          </div>
+          <div class="admin-field">
+            <label for="content-status">Yayın durumu</label>
+            <select id="content-status" formControlName="status">
+              <option value="draft">Taslak</option>
+              <option value="published">Yayında</option>
+            </select>
+          </div>
+        </div>
+        <div class="admin-form__row">
+          <div class="admin-field">
+            <label for="content-summary-tr">Özet (Türkçe)</label>
+            <textarea
+              id="content-summary-tr"
+              formControlName="summaryTr"
+              rows="3"
+              maxlength="500"
+            ></textarea>
+          </div>
+          <div class="admin-field">
+            <label for="content-summary-en">Summary (English)</label>
+            <textarea
+              id="content-summary-en"
+              formControlName="summaryEn"
+              rows="3"
+              maxlength="500"
+            ></textarea>
+          </div>
+        </div>
+        <div class="admin-form__row">
+          <div class="admin-field">
+            <label for="content-category-tr">Kategori (TR)</label>
+            <input id="content-category-tr" formControlName="categoryTr" />
+          </div>
+          <div class="admin-field">
+            <label for="content-category-en">Category (EN)</label>
+            <input id="content-category-en" formControlName="categoryEn" />
+          </div>
+        </div>
+        <div class="admin-field">
+          <label for="content-tags">Etiketler</label>
+          <input
+            id="content-tags"
+            formControlName="tags"
+            placeholder="Angular, PostgreSQL, güvenlik"
+          />
+          <small>Etiketleri virgülle ayırın.</small>
+        </div>
+        <div class="admin-field">
+          <label for="content-body-tr">İçerik / Markdown (Türkçe)</label>
+          <textarea
+            id="content-body-tr"
+            formControlName="bodyTr"
+            rows="8"
+            maxlength="20000"
+            spellcheck="true"
+          ></textarea>
+        </div>
+        <div class="admin-field">
+          <label for="content-body-en">Content / Markdown (English)</label>
+          <textarea
+            id="content-body-en"
+            formControlName="bodyEn"
+            rows="8"
+            maxlength="20000"
+            spellcheck="true"
+          ></textarea>
+          <small
+            >İçerik HTML olarak çalıştırılmaz; düz metin/Markdown güvenli biçimde gösterilir.</small
+          >
+        </div>
+        <div class="admin-form__row">
+          <div class="admin-field">
+            <label for="content-published-at">Yayın tarihi (isteğe bağlı)</label>
+            <input id="content-published-at" type="datetime-local" formControlName="publishedAt" />
+            <small>İleri tarihli kayıtlar tarih gelene kadar herkese açık olmaz.</small>
+          </div>
+          <div class="admin-field">
+            <label for="content-cover">Kapak görseli</label>
+            <input
+              id="content-cover"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              (change)="uploadCover($event)"
+            />
+            <small>PNG, JPEG veya WebP; en fazla 5 MB.</small>
+            @if (uploading()) {
+              <span role="status">Görsel yükleniyor…</span>
+            }
+            @if (coverUrl()) {
+              <a class="admin-inline-link" [href]="coverUrl()" target="_blank" rel="noreferrer"
+                >Yüklenen görseli görüntüle</a
+              >
+            }
+          </div>
+        </div>
+        <div class="admin-form__row">
+          <div class="admin-field">
+            <label for="content-cover-alt-tr">Kapak alt metni (TR)</label>
+            <input id="content-cover-alt-tr" formControlName="coverAltTr" />
+          </div>
+          <div class="admin-field">
+            <label for="content-cover-alt-en">Cover alt text (EN)</label>
+            <input id="content-cover-alt-en" formControlName="coverAltEn" />
+          </div>
+        </div>
+        <details class="admin-details">
+          <summary>Lab/demo dış bağlantıları (isteğe bağlı)</summary>
+          <div class="admin-field">
+            <label for="content-links">Bağlantı listesi JSON</label>
+            <textarea
+              id="content-links"
+              formControlName="linksJson"
+              rows="5"
+              maxlength="5000"
+              spellcheck="false"
+            ></textarea>
+            <small
+              >Her öğede iki dilli label ve güvenli href alanı bulunan, en fazla 20 öğelik JSON
+              dizisi. Yalnızca HTTP(S) URL kabul edilir.</small
+            >
+          </div>
+        </details>
+        <details class="admin-details">
+          <summary>SEO meta bilgileri</summary>
+          <div class="admin-form">
+            <div class="admin-form__row">
+              <div class="admin-field">
+                <label for="seo-title-tr">SEO title (TR)</label
+                ><input id="seo-title-tr" formControlName="seoTitleTr" maxlength="180" />
+              </div>
+              <div class="admin-field">
+                <label for="seo-title-en">SEO title (EN)</label
+                ><input id="seo-title-en" formControlName="seoTitleEn" maxlength="180" />
+              </div>
+            </div>
+            <div class="admin-form__row">
+              <div class="admin-field">
+                <label for="seo-description-tr">SEO description (TR)</label
+                ><textarea
+                  id="seo-description-tr"
+                  formControlName="seoDescriptionTr"
+                  rows="3"
+                  maxlength="320"
+                ></textarea>
+              </div>
+              <div class="admin-field">
+                <label for="seo-description-en">SEO description (EN)</label
+                ><textarea
+                  id="seo-description-en"
+                  formControlName="seoDescriptionEn"
+                  rows="3"
+                  maxlength="320"
+                ></textarea>
+              </div>
+            </div>
+            <div class="admin-form__row">
+              <div class="admin-field">
+                <label for="content-href">Sosyal profil / dış bağlantı URL’si</label
+                ><input
+                  id="content-href"
+                  formControlName="href"
+                  type="url"
+                  placeholder="https://…"
+                />
+              </div>
+              <div class="admin-field">
+                <label for="content-og-image">Open Graph görsel URL’si</label
+                ><input id="content-og-image" formControlName="ogImage" type="url" />
+              </div>
+            </div>
+            <div class="admin-form__row">
+              <div class="admin-field">
+                <label for="content-canonical">Canonical URL</label
+                ><input id="content-canonical" formControlName="canonicalUrl" type="url" />
+              </div>
+            </div>
+          </div>
+        </details>
+        @if (error()) {
+          <p class="admin-error" role="alert">{{ error() }}</p>
+        }
+        @if (notice()) {
+          <p class="admin-success" role="status">{{ notice() }}</p>
+        }
+        <div class="admin-actions">
+          <button
+            class="admin-button admin-button--primary"
+            type="submit"
+            [disabled]="saving() || uploading()"
+          >
+            {{ saving() ? 'Kaydediliyor…' : 'Kaydet' }}
+          </button>
+          <button class="admin-button admin-button--quiet" type="button" (click)="startNew()">
+            Formu temizle
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+</section>

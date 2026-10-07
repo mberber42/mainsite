@@ -1,0 +1,32 @@
+<div class="admin-layout">
+  <aside class="admin-sidebar" aria-label="Yönetim paneli">
+    <a class="admin-brand" routerLink="/admin/dashboard">
+      <span class="admin-brand__mark" aria-hidden="true">MB</span>
+      <span><strong>Mustafa BERBER</strong><small>İçerik yönetimi</small></span>
+    </a>
+    <nav class="admin-nav" aria-label="Yönetim modülleri">
+      @for (item of modules; track item.path) {
+        <a
+          class="admin-nav__link"
+          [routerLink]="item.path"
+          routerLinkActive="admin-nav__link--active"
+          ariaCurrentWhenActive="page"
+        >
+          {{ item.label }}
+        </a>
+      }
+    </nav>
+    <a class="admin-public-link" routerLink="/">← Siteyi görüntüle</a>
+  </aside>
+  <div class="admin-workspace">
+    <header class="admin-topbar">
+      <p>Yönetim paneli</p>
+      <button class="admin-button admin-button--quiet" type="button" (click)="logout()">
+        Oturumu kapat
+      </button>
+    </header>
+    <main class="admin-main" id="main-content">
+      <router-outlet />
+    </main>
+  </div>
+</div>

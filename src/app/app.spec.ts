@@ -4,6 +4,19 @@ import { vi } from 'vitest';
 import { App } from './app';
 import { routes } from './app.routes';
 import { BLOG_POSTS, LAB_PROJECTS, type BlogPost, type LabProject } from './content/public-content';
+import { CmsApiService } from './cms/cms-api.service';
+import { of } from 'rxjs';
+
+const cmsApiStub = {
+  entries: vi.fn(() => of(null)),
+  entry: vi.fn(() => of(null)),
+  blogPosts: vi.fn(() => of(null)),
+  blogPost: vi.fn(() => of(null)),
+  labProjects: vi.fn(() => of(null)),
+  labProject: vi.fn(() => of(null)),
+  cvUrl: vi.fn(() => of(null)),
+  mutate: vi.fn().mockResolvedValue({ id: 'test-message-id' }),
+} as unknown as CmsApiService;
 
 const bilingualRoutes = [
   { path: '/hakkimda', tr: 'Hakkımda', en: 'About' },
@@ -32,9 +45,10 @@ async function createApp() {
 
 describe('public routes', () => {
   beforeEach(async () => {
+    vi.clearAllMocks();
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [provideRouter(routes)],
+      providers: [provideRouter(routes), { provide: CmsApiService, useValue: cmsApiStub }],
     }).compileComponents();
   });
 
@@ -179,9 +193,39 @@ describe('public routes', () => {
     }
   });
 
-  it('validates contact fields accessibly and never transmits or stores a message', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch');
-    const storageLength = localStorage.length;
+  it('renders Markdown while Angular sanitizes unsafe HTML, handlers, and javascript links', async () => {
+    const blogPosts = BLOG_POSTS as unknown as BlogPost[];
+    const initialLength = blogPosts.length;
+    blogPosts.push({
+      slug: 'markdown-sanitizer-check',
+      title: { tr: 'Güvenli Markdown', en: 'Safe Markdown' },
+      summary: { tr: 'Özet', en: 'Summary' },
+      body: [],
+      bodyMarkdown: {
+        tr: '**Kalın metin**\n\n<script>alert(1)</script><img src=x onerror=alert(1)> [tehlikeli](javascript:alert(1))',
+        en: '**Bold text**\n\n<script>alert(1)</script><img src=x onerror=alert(1)> [unsafe](javascript:alert(1))',
+      },
+    });
+    try {
+      const { fixture, router, page } = await createApp();
+      await router.navigateByUrl('/blog/markdown-sanitizer-check');
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const rendered = page.querySelector('.detail-article__body');
+      expect(rendered?.querySelector('strong')?.textContent).toContain('Kalın metin');
+      expect(rendered?.querySelector('script')).toBeNull();
+      expect(rendered?.querySelector('[onerror]')).toBeNull();
+      const remainingHrefs = Array.from(rendered?.querySelectorAll('a') ?? []).map(
+        (anchor) => anchor.getAttribute('href')?.toLowerCase() ?? '',
+      );
+      expect(remainingHrefs.every((href) => !href.startsWith('javascript:'))).toBe(true);
+    } finally {
+      blogPosts.splice(initialLength);
+    }
+  });
+
+  it('validates contact fields accessibly and sends valid messages to the server-side inbox', async () => {
     const { fixture, router, page } = await createApp();
     await router.navigateByUrl('/iletisim');
     fixture.detectChanges();
@@ -221,7 +265,7 @@ describe('public routes', () => {
     fixture.detectChanges();
     expect(page.querySelector('#name-error')?.textContent).toContain('zorunludur');
     expect(page.querySelector('#message-error')?.textContent).toContain('zorunludur');
-    expect(page.textContent).not.toContain('Alanlar doğrulandı; mesaj gönderilmedi');
+    expect(page.textContent).not.toContain('Mesajınız gönderildi');
 
     name.value = 'Mustafa';
     name.dispatchEvent(new Event('input', { bubbles: true }));
@@ -229,12 +273,14 @@ describe('public routes', () => {
     message.dispatchEvent(new Event('input', { bubbles: true }));
     fixture.detectChanges();
     page.querySelector<HTMLButtonElement>('form button[type="submit"]')?.click();
+    await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(page.textContent).toContain('Alanlar doğrulandı; mesaj gönderilmedi');
-    expect(page.textContent).toContain('hiçbir yere iletilmedi');
-    expect(fetchSpy).not.toHaveBeenCalled();
-    expect(localStorage.length).toBe(storageLength);
-    fetchSpy.mockRestore();
+    expect(page.textContent).toContain('Mesajınız gönderildi');
+    expect(cmsApiStub.mutate).toHaveBeenCalledWith('POST', '/api/public/contact', {
+      name: 'Mustafa',
+      email: 'mustafa@example.test',
+      message: 'Test message',
+    });
   });
 });

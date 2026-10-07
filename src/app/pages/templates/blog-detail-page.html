@@ -31,11 +31,15 @@
           }
         </ul>
       }
-      <div class="detail-article__body">
-        @for (paragraph of article.body; track $index) {
-          <p>{{ localized(paragraph) }}</p>
-        }
-      </div>
+      @if (article.bodyMarkdown) {
+        <div class="detail-article__body" [innerHTML]="renderMarkdown(article.bodyMarkdown)"></div>
+      } @else {
+        <div class="detail-article__body">
+          @for (paragraph of article.body; track $index) {
+            <p>{{ localized(paragraph) }}</p>
+          }
+        </div>
+      }
     </article>
     <a class="text-link" routerLink="/blog">← {{ copy().backToList }}</a>
   } @else {

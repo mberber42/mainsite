@@ -1,0 +1,88 @@
+<section class="admin-page" aria-labelledby="files-title">
+  <div class="admin-page__heading">
+    <div>
+      <p class="admin-eyebrow">Dosyalar</p>
+      <h1 id="files-title">CV ve dosyalar</h1>
+    </div>
+  </div>
+  <section class="admin-panel admin-cv-panel" aria-labelledby="cv-heading">
+    <div>
+      <p class="admin-eyebrow">Profil dosyası</p>
+      <h2 id="cv-heading">Özgeçmiş (CV)</h2>
+      <p class="admin-muted">
+        CV yalnızca PDF kabul eder ve public profil indirme bağlantısı olarak sunulur. En fazla 8
+        MB.
+      </p>
+      @if (cv(); as currentCv) {
+        <p class="admin-file-current">
+          Güncel dosya:
+          <a
+            class="admin-inline-link"
+            [href]="publicUrl(currentCv)"
+            target="_blank"
+            rel="noreferrer"
+            >{{ currentCv.original_name }}</a
+          >
+          <span>({{ sizeLabel(currentCv.size_bytes) }})</span>
+        </p>
+      } @else {
+        <p class="admin-empty">Henüz CV yüklenmedi.</p>
+      }
+    </div>
+    <div class="admin-field">
+      <label for="cv-upload">Yeni CV PDF’si yükle</label>
+      <input id="cv-upload" type="file" accept="application/pdf,.pdf" (change)="uploadCv($event)" />
+      @if (uploading()) {
+        <p role="status">Dosya yükleniyor…</p>
+      }
+    </div>
+  </section>
+
+  <section class="admin-panel" aria-labelledby="stored-files-title">
+    <div class="admin-panel__heading">
+      <h2 id="stored-files-title">Yerel dosyalar</h2>
+      <span class="admin-count">{{ files().length }}</span>
+    </div>
+    @if (error()) {
+      <p class="admin-error" role="alert">{{ error() }}</p>
+    }
+    @if (notice()) {
+      <p class="admin-success" role="status">{{ notice() }}</p>
+    }
+    @if (loading()) {
+      <p class="admin-loading" role="status">Dosyalar yükleniyor…</p>
+    } @else if (files().length) {
+      <ul class="admin-list">
+        @for (file of files(); track file.id) {
+          <li class="admin-file-row">
+            <div>
+              <strong>{{ file.original_name }}</strong
+              ><small
+                >{{ file.purpose === 'cv' ? 'CV' : 'Görsel' }} · {{ file.media_type }} ·
+                {{ sizeLabel(file.size_bytes) }} · {{ file.created_at | date: 'short' }}</small
+              >
+            </div>
+            <div class="admin-actions">
+              <a
+                class="admin-button admin-button--quiet"
+                [href]="file.purpose === 'cv' ? publicUrl(file) : '/api/admin/files/' + file.id"
+                target="_blank"
+                rel="noreferrer"
+                >Görüntüle</a
+              >
+              <button
+                class="admin-button admin-button--danger"
+                type="button"
+                (click)="remove(file)"
+              >
+                Sil
+              </button>
+            </div>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="admin-empty">Henüz dosya yok.</p>
+    }
+  </section>
+</section>

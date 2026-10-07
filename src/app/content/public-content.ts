@@ -28,10 +28,15 @@ export type BlogPost = {
   readonly title: LocalizedText;
   readonly summary: LocalizedText;
   readonly body: readonly LocalizedText[];
+  readonly bodyMarkdown?: LocalizedText;
   readonly category?: LocalizedText;
   readonly tags?: readonly LocalizedText[];
   readonly publishedAt?: string;
   readonly readingMinutes?: number;
+  readonly seoTitle?: LocalizedText;
+  readonly seoDescription?: LocalizedText;
+  readonly canonicalUrl?: string;
+  readonly ogImage?: string;
 } & CoverImageFields;
 
 export type LabProject = {
@@ -39,9 +44,12 @@ export type LabProject = {
   readonly title: LocalizedText;
   readonly summary: LocalizedText;
   readonly description: readonly LocalizedText[];
+  readonly bodyMarkdown?: LocalizedText;
   readonly category?: LocalizedText;
   readonly tags?: readonly LocalizedText[];
   readonly links?: readonly { label: LocalizedText; href: string }[];
+  readonly canonicalUrl?: string;
+  readonly ogImage?: string;
 } & CoverImageFields;
 
 export const PROFILE_CONTENT = {
@@ -196,6 +204,8 @@ export interface PublicCopy {
     readonly messageHint: string;
     readonly messageRequired: string;
     readonly sendButton: string;
+    readonly sendingLabel: string;
+    readonly submitError: string;
     readonly noSendTitle: string;
     readonly noSendBody: string;
     readonly validatedTitle: string;
@@ -239,7 +249,8 @@ export const PUBLIC_COPY: Record<Locale, PublicCopy> = {
       faqTitle: 'Sık sorulan sorular',
       faqEmpty: 'Doğrulanmış hizmet bilgisi olmadan soru-cevap yayımlanmıyor.',
       contactTitle: 'Bir konu hakkında konuşalım mı?',
-      contactBody: 'İletişim formu bu fazda yalnızca yerel doğrulama yapar; mesaj iletilmez.',
+      contactBody:
+        'Gönderdiğiniz mesaj güvenli yönetim kutusunda saklanır ve yalnızca yönetici hesabıyla görüntülenir.',
       contactCta: 'İletişim sayfasına git',
     },
     blog: {
@@ -273,8 +284,7 @@ export const PUBLIC_COPY: Record<Locale, PublicCopy> = {
     contact: {
       eyebrow: 'İletişim',
       title: 'İletişim formu',
-      description:
-        'Form alanları bu fazda yalnızca tarayıcıda doğrulanır; mesaj gönderilmez veya saklanmaz.',
+      description: 'Mesajınızı gönderin; yönetim ekibi size e-posta üzerinden dönüş yapabilir.',
       nameLabel: 'Adınız',
       nameHint: 'Adınızı yazın.',
       nameRequired: 'Ad alanı zorunludur.',
@@ -285,11 +295,14 @@ export const PUBLIC_COPY: Record<Locale, PublicCopy> = {
       messageLabel: 'Mesajınız',
       messageHint: 'Mesaj metnini yazın.',
       messageRequired: 'Mesaj alanı zorunludur.',
-      sendButton: 'Alanları doğrula',
-      noSendTitle: 'Gönderim bu fazda kapalı',
-      noSendBody: 'Form hiçbir yere iletilmez, ağ isteği oluşturmaz ve mesaj saklamaz.',
-      validatedTitle: 'Alanlar doğrulandı; mesaj gönderilmedi',
-      validatedBody: 'Bu fazda form hiçbir yere iletilmedi ve mesaj saklanmadı.',
+      sendButton: 'Mesajı gönder',
+      sendingLabel: 'Gönderiliyor…',
+      submitError: 'Mesaj gönderilemedi. Lütfen biraz sonra tekrar deneyin.',
+      noSendTitle: 'Güvenli mesaj kutusu',
+      noSendBody:
+        'Mesajlar aynı-origin API üzerinden doğrulanır ve yönetici panelinde erişilebilir şekilde saklanır.',
+      validatedTitle: 'Mesajınız gönderildi',
+      validatedBody: 'Mesajınız alındı ve yönetim panelindeki güvenli mesaj kutusuna kaydedildi.',
     },
     notFound: {
       eyebrow: '404 · Sayfa bulunamadı',
@@ -328,7 +341,7 @@ export const PUBLIC_COPY: Record<Locale, PublicCopy> = {
       faqEmpty: 'No questions and answers are published without verified service details.',
       contactTitle: 'Would you like to discuss something?',
       contactBody:
-        'The contact form only validates locally in this phase; no message is transmitted.',
+        'Messages are stored in the secure admin inbox and can only be viewed by an administrator.',
       contactCta: 'Go to the contact page',
     },
     blog: {
@@ -362,8 +375,7 @@ export const PUBLIC_COPY: Record<Locale, PublicCopy> = {
     contact: {
       eyebrow: 'Contact',
       title: 'Contact form',
-      description:
-        'In this phase, form fields are validated only in the browser; messages are not sent or stored.',
+      description: 'Send a message; the site owner can respond to you by email.',
       nameLabel: 'Your name',
       nameHint: 'Enter your name.',
       nameRequired: 'Name is required.',
@@ -374,13 +386,14 @@ export const PUBLIC_COPY: Record<Locale, PublicCopy> = {
       messageLabel: 'Your message',
       messageHint: 'Enter your message.',
       messageRequired: 'Message is required.',
-      sendButton: 'Validate fields',
-      noSendTitle: 'Sending is disabled in this phase',
+      sendButton: 'Send message',
+      sendingLabel: 'Sending…',
+      submitError: 'Your message could not be sent. Please try again in a moment.',
+      noSendTitle: 'Secure message inbox',
       noSendBody:
-        'The form is not transmitted anywhere, makes no network request, and stores no message.',
-      validatedTitle: 'Fields validated; message not sent',
-      validatedBody:
-        'In this phase, the form was not transmitted anywhere and the message was not stored.',
+        'Messages are validated by the same-origin API and stored in the admin panel inbox.',
+      validatedTitle: 'Your message was sent',
+      validatedBody: 'Your message was received and saved to the secure admin inbox.',
     },
     notFound: {
       eyebrow: '404 · Page not found',
