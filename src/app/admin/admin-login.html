@@ -1,0 +1,42 @@
+<main class="admin-login" id="main-content">
+  <section class="admin-login__card" aria-labelledby="admin-login-title">
+    <a class="admin-login__back" routerLink="/">← Siteye dön</a>
+    <p class="admin-eyebrow">Güvenli yönetim</p>
+    <h1 id="admin-login-title">Yönetici girişi</h1>
+    <p class="admin-muted">Yönetim alanına erişmek için hesabınızla oturum açın.</p>
+    <form class="admin-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="admin-field">
+        <label for="admin-email">E-posta</label>
+        <input
+          id="admin-email"
+          type="email"
+          autocomplete="username"
+          formControlName="email"
+          required
+          [attr.aria-invalid]="form.controls.email.invalid && form.controls.email.touched"
+          aria-describedby="admin-email-hint"
+        />
+        <small id="admin-email-hint"
+          >Yalnızca önceden oluşturulmuş yönetici hesabı giriş yapabilir.</small
+        >
+      </div>
+      <div class="admin-field">
+        <label for="admin-password">Parola</label>
+        <input
+          id="admin-password"
+          type="password"
+          autocomplete="current-password"
+          formControlName="password"
+          required
+          [attr.aria-invalid]="form.controls.password.invalid && form.controls.password.touched"
+        />
+      </div>
+      @if (error()) {
+        <p class="admin-error" role="alert">{{ error() }}</p>
+      }
+      <button class="admin-button admin-button--primary" type="submit" [disabled]="busy()">
+        {{ busy() ? 'Giriş yapılıyor…' : 'Oturum aç' }}
+      </button>
+    </form>
+  </section>
+</main>

@@ -1,0 +1,81 @@
+<section class="admin-page" aria-labelledby="dashboard-title">
+  <div class="admin-page__heading">
+    <div>
+      <p class="admin-eyebrow">Genel bakış</p>
+      <h1 id="dashboard-title">Dashboard</h1>
+    </div>
+    <div class="admin-actions">
+      <a class="admin-button admin-button--primary" routerLink="/admin/content/blog"
+        >Blog yazısı oluştur</a
+      >
+      <a class="admin-button admin-button--quiet" routerLink="/admin/content/lab"
+        >Lab kaydı oluştur</a
+      >
+    </div>
+  </div>
+
+  @if (loading()) {
+    <p class="admin-loading" role="status">Dashboard yükleniyor…</p>
+  } @else if (error()) {
+    <p class="admin-error" role="alert">{{ error() }}</p>
+  } @else if (dashboard(); as data) {
+    <div class="admin-metric-grid" aria-label="İçerik sayıları">
+      <article class="admin-metric">
+        <span>Blog yazısı</span><strong>{{ data.blogTotal }}</strong>
+      </article>
+      <article class="admin-metric">
+        <span>Lab projesi</span><strong>{{ data.labTotal }}</strong>
+      </article>
+      <article class="admin-metric">
+        <span>Yayında</span><strong>{{ data.publishedTotal }}</strong>
+      </article>
+      <article class="admin-metric">
+        <span>Taslak / zamanlanmış</span><strong>{{ data.draftTotal }}</strong>
+      </article>
+      <article class="admin-metric">
+        <span>Okunmamış mesaj</span><strong>{{ data.unreadMessages }}</strong>
+      </article>
+    </div>
+
+    <div class="admin-dashboard-grid">
+      <section class="admin-panel" aria-labelledby="recent-messages-title">
+        <div class="admin-panel__heading">
+          <h2 id="recent-messages-title">Son mesajlar</h2>
+          <a routerLink="/admin/messages">Tüm mesajlar</a>
+        </div>
+        @if (data.recentMessages.length) {
+          <ul class="admin-list">
+            @for (message of data.recentMessages; track message.id) {
+              <li>
+                <a
+                  class="admin-list__item"
+                  routerLink="/admin/messages"
+                  [attr.aria-label]="'Mesajı aç: ' + message.name"
+                >
+                  <span
+                    ><strong>{{ message.name }}</strong
+                    ><small>{{ message.email }}</small></span
+                  >
+                  <time [attr.datetime]="message.created_at">{{
+                    message.created_at | date: 'short'
+                  }}</time>
+                </a>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="admin-empty">Henüz iletişim mesajı yok.</p>
+        }
+      </section>
+      <section class="admin-panel" aria-labelledby="quick-links-title">
+        <h2 id="quick-links-title">Hızlı işlemler</h2>
+        <div class="admin-quick-links">
+          <a routerLink="/admin/content/services">Hizmetleri düzenle</a>
+          <a routerLink="/admin/content/faqs">SSS ekle</a>
+          <a routerLink="/admin/content/testimonials">Referansları yönet</a>
+          <a routerLink="/admin/files">CV dosyasını güncelle</a>
+        </div>
+      </section>
+    </div>
+  }
+</section>

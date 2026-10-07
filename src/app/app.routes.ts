@@ -1,6 +1,38 @@
 import { Routes } from '@angular/router';
+import { adminGuard } from './admin/admin.guard';
 
 export const routes: Routes = [
+  {
+    path: 'admin/login',
+    loadComponent: () => import('./admin/admin-login').then((page) => page.AdminLoginComponent),
+  },
+  {
+    path: 'admin',
+    canActivateChild: [adminGuard],
+    loadComponent: () => import('./admin/admin-layout').then((page) => page.AdminLayoutComponent),
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+      {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./admin/admin-dashboard').then((page) => page.AdminDashboardComponent),
+      },
+      {
+        path: 'content/:kind',
+        loadComponent: () =>
+          import('./admin/admin-content').then((page) => page.AdminContentComponent),
+      },
+      {
+        path: 'messages',
+        loadComponent: () =>
+          import('./admin/admin-messages').then((page) => page.AdminMessagesComponent),
+      },
+      {
+        path: 'files',
+        loadComponent: () => import('./admin/admin-files').then((page) => page.AdminFilesComponent),
+      },
+    ],
+  },
   {
     path: '',
     pathMatch: 'full',

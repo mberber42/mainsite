@@ -13,7 +13,7 @@
       </div>
     </div>
     <div class="content-grid content-grid--three">
-      @for (service of serviceCards; track service.id) {
+      @for (service of serviceCards(); track service.id) {
         <article class="surface-card content-panel">
           <span class="placeholder-label">{{ service.status[locale()] }}</span>
           <h3>{{ service.title[locale()] }}</h3>
@@ -51,7 +51,20 @@
         <h2 id="faq-title">{{ copy().faqTitle }}</h2>
       </div>
     </div>
-    <p class="surface-card empty-state">{{ copy().faqEmpty }}</p>
+    @if (faqs().length) {
+      <div class="faq-list">
+        @for (faq of faqs(); track faq.id) {
+          <details class="surface-card content-panel">
+            <summary>
+              <h3>{{ faq.question }}</h3>
+            </summary>
+            <p>{{ faq.answer }}</p>
+          </details>
+        }
+      </div>
+    } @else {
+      <p class="surface-card empty-state">{{ copy().faqEmpty }}</p>
+    }
   </section>
 
   <section class="surface-card contact-cta" aria-labelledby="services-contact-title">

@@ -2,28 +2,27 @@
 
 ## Architecture
 
-- Use standalone Angular components and keep the root shell small. The root shell owns the skip link, shared header/footer, and one `<main>` containing the router outlet. Public route components live under `src/app/pages/`.
-- Define the public route table in `src/app/app.routes.ts` and its Angular SSR/prerender modes in `src/app/app.routes.server.ts`. Keep the home route prerendered and public content routes server-rendered so direct URLs and parameterized detail routes work.
-- Keep locale state in the root `LocaleService` Signal. Page copy and replaceable profile/service/blog/Lab content come from typed modules under `src/app/content/`, not duplicated in templates. Use RouterLink for internal navigation so locale selection survives route changes.
-- Use semantic `<header>`, `<nav>`, `<main>`, `<section>`, `<article>`, and `<footer>` landmarks. Each routed page has one page-level `<h1>` and a logical heading order.
+- Use standalone Angular components; keep the root shell small. Public route components live under `src/app/pages/`, and the lazy-loaded admin area under `src/app/admin/`.
+- Public routes and SSR/prerender modes are declared in `src/app/app.routes.ts` and `src/app/app.routes.server.ts`. Keep `/` prerendered and content routes server-rendered. The same-origin Node API is integrated before Angular SSR in `src/server.ts`.
+- The public content client is `src/app/cms/cms-api.service.ts`. Blog, Lab, services, FAQs, testimonials, social links, hero, CV, and SEO records come from the PostgreSQL API; static content is only a fallback for explicitly maintained Phase 2 data.
+- The admin UI calls the same-origin API and never connects directly to PostgreSQL. All authorization is enforced by the server, not by the client-side route guard.
+- Keep locale state in the root `LocaleService` Signal. Public page copy remains in typed modules under `src/app/content/`.
 
-## Styling and design tokens
+## Styling, semantics, and accessibility
 
-- Tailwind CSS is installed through the Angular integration documented at [angular.dev/guide/tailwind](https://angular.dev/guide/tailwind).
-- Define global colors, type, spacing, radii, shadows, and motion tokens in `src/styles.css`. Shared route-page layouts and responsive styles live in `src/app/pages/pages.css`.
-- Dark mode is the default. Maintain readable contrast, responsive layouts, and visible `:focus-visible` styles.
-- Disable or shorten non-essential transitions under `@media (prefers-reduced-motion: reduce)`.
-- Reusable primitives include `.button`, `.surface-card`, and `.form-field*` label/control/hint/error styles. Contact-form validation remains client-side only; do not submit or persist form values.
+- Global design tokens live in `src/styles.css`; shared public page styles are in `src/app/pages/pages.css`, and admin styles are in `src/app/admin/admin.css`.
+- Maintain readable contrast, semantic landmarks, a single page-level `<h1>`, keyboard-operable links/controls, visible `:focus-visible` styles, and mobile layouts without horizontal overflow.
+- Support `prefers-reduced-motion`. Give form controls explicit labels, error descriptions, status announcements, and disabled/loading states.
+- The admin shell hides public navigation/footer and keeps a separate skip-to-main landmark. Use RouterLink for internal navigation.
 
-## Localization and content
+## Localization, security, and content
 
-- Support Turkish (`tr`) and English (`en`) across every public route, empty/error state, form message, navigation label, and accessibility name. Localized page copy is centralized in `src/app/content/public-content.ts`; home and shared navigation copy remains in `home-content.ts`.
-- Keep language controls keyboard-operable and clearly indicate the active language. `LocaleService` updates the document `lang` attribute; RouterLink navigation does not reset the selected locale.
-- Keep profile, service, post, project, CV, and social data explicit and replaceable. Do not invent personal history, client work, results, availability, price/terms, or contact/social URLs. Empty blog/Lab arrays must remain valid and show translated empty states.
-- Optional content fields—such as date, category, tags, cover image, reading time, and project links—must be omitted from the UI when absent. Only a verified URL may be rendered as a link.
+- Support Turkish (`tr`) and English (`en`) across public routes, empty/error states, form messages, navigation, and accessibility names. `LocaleService` updates `<html lang>` without changing the URL.
+- Do not invent personal history, work claims, service terms, or URLs. Missing CV/social/project links remain absent or explicit placeholders.
+- Markdown source is passed through `marked`, then bound through Angular’s normal `[innerHTML]` sanitizer. Never call `bypassSecurityTrustHtml` for CMS content or insert untrusted content into the DOM manually.
+- The contact form submits only to same-origin `/api/public/contact`; the API validates and stores the message in PostgreSQL for the admin inbox. Do not send messages to email/third parties in this phase.
+- Session cookies, CSRF, API authorization, slug uniqueness, publication timestamps, file type/size checks, and persistent-storage rules belong to the Node API. Frontend guards are a usability layer, not a security boundary.
 
-## Rendering and commands
+## Verification
 
-- Keep `/` prerendered so crawler-visible home copy is in initial HTML. Public content routes and the wildcard 404 use `RenderMode.Server`; preserve the generated server bundle for direct-route requests. Static hosting without the SSR server does not provide these dynamic route responses.
-- SSR host validation is enabled. Local development permits `localhost` and `127.0.0.1`; a real deployment hostname must be configured in the server environment through `NG_ALLOWED_HOSTS`. Do not use the wildcard host entry to bypass validation.
-- Verify production output with `npm run build`; verify behavior with `npm test`; run `npm run lint` and `npm run format:check` before submitting.
+Before submitting, run `npm run lint`, `npm test` (with a dedicated local PostgreSQL database ending `_test`), `npm run format:check`, and `npm run build`. Do not point tests or development work at production data.

@@ -5,9 +5,9 @@
     [description]="copy().description"
   />
 
-  @if (projects.length) {
+  @if (projects().length) {
     <div class="content-grid content-grid--three">
-      @for (project of projects; track project.slug) {
+      @for (project of projects(); track project.slug) {
         <article class="surface-card content-panel content-card">
           @if (project.coverImage) {
             <img

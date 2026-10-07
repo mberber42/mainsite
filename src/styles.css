@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import './app/pages/pages.css';
+@import './app/admin/admin.css';
 
 @theme {
   --color-canvas: #080b0a;

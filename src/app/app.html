@@ -1,6 +1,10 @@
 <a class="skip-link" href="#main-content">{{ skipLinkLabel() }}</a>
-<app-site-header />
-<main id="main-content">
+@if (isAdmin()) {
   <router-outlet />
-</main>
-<app-site-footer />
+} @else {
+  <app-site-header />
+  <main id="main-content">
+    <router-outlet />
+  </main>
+  <app-site-footer />
+}

@@ -25,11 +25,15 @@
           }
         </ul>
       }
-      <div class="detail-article__body">
-        @for (paragraph of entry.description; track $index) {
-          <p>{{ localized(paragraph) }}</p>
-        }
-      </div>
+      @if (entry.bodyMarkdown) {
+        <div class="detail-article__body" [innerHTML]="renderMarkdown(entry.bodyMarkdown)"></div>
+      } @else {
+        <div class="detail-article__body">
+          @for (paragraph of entry.description; track $index) {
+            <p>{{ localized(paragraph) }}</p>
+          }
+        </div>
+      }
       @if (entry.links?.length) {
         <nav class="project-links" aria-label="{{ copy().detailsLabel }}">
           @for (link of entry.links; track link.href) {

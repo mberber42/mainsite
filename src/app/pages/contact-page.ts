@@ -1,4 +1,5 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
   FormControl,
   FormGroup,
@@ -8,6 +9,8 @@ import {
 } from '@angular/forms';
 import { PUBLIC_COPY } from '../content/public-content';
 import { LocaleService } from '../i18n/locale.service';
+import { CmsApiService } from '../cms/cms-api.service';
+import { SeoMetadataService } from '../cms/seo-metadata.service';
 import { PageIntroComponent } from './page-intro';
 
 const trimmedRequired: ValidatorFn = (control) => {
@@ -24,6 +27,9 @@ const trimmedRequired: ValidatorFn = (control) => {
 })
 export class ContactPageComponent {
   private readonly localeService = inject(LocaleService);
+  private readonly cmsApi = inject(CmsApiService);
+  private readonly seo = inject(SeoMetadataService);
+  private readonly seoEntry = toSignal(this.cmsApi.entry('seo', 'contact'), { initialValue: null });
   protected readonly locale = this.localeService.locale;
   protected readonly copy = computed(() => PUBLIC_COPY[this.locale()].contact);
   protected readonly form = new FormGroup({
@@ -35,7 +41,20 @@ export class ContactPageComponent {
     message: new FormControl('', { nonNullable: true, validators: [trimmedRequired] }),
   });
   protected submitAttempted = false;
-  protected validated = false;
+  protected readonly sending = signal(false);
+  protected readonly submitted = signal(false);
+  protected readonly submitError = signal(false);
+
+  constructor() {
+    effect(() =>
+      this.seo.applyEntry(
+        this.seoEntry(),
+        this.locale(),
+        `${this.copy().title} | Mustafa BERBER`,
+        this.copy().description,
+      ),
+    );
+  }
 
   protected errorMessage(field: 'name' | 'email' | 'message'): string {
     const control = this.form.controls[field];
@@ -55,16 +74,31 @@ export class ContactPageComponent {
     return '';
   }
 
-  protected submit(): void {
+  protected async submit(): Promise<void> {
     this.submitAttempted = true;
-    this.validated = false;
+    this.submitted.set(false);
+    this.submitError.set(false);
     this.form.markAllAsTouched();
 
     if (this.form.invalid) {
       return;
     }
 
-    // Intentionally local-only in Phase 2: do not issue requests or persist form values.
-    this.validated = true;
+    this.sending.set(true);
+    try {
+      const { name, email, message } = this.form.getRawValue();
+      await this.cmsApi.mutate<{ id: string }>('POST', '/api/public/contact', {
+        name,
+        email,
+        message,
+      });
+      this.form.reset({ name: '', email: '', message: '' });
+      this.submitAttempted = false;
+      this.submitted.set(true);
+    } catch {
+      this.submitError.set(true);
+    } finally {
+      this.sending.set(false);
+    }
   }
 }

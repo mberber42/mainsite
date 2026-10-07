@@ -1,0 +1,99 @@
+<section class="admin-page" aria-labelledby="messages-title">
+  <div class="admin-page__heading">
+    <div>
+      <p class="admin-eyebrow">İletişim</p>
+      <h1 id="messages-title">Mesaj kutusu</h1>
+    </div>
+    <div class="admin-toggle" role="group" aria-label="Mesaj görünümü">
+      <button type="button" [attr.aria-pressed]="!showArchived()" (click)="setArchivedView(false)">
+        Gelen kutusu
+      </button>
+      <button type="button" [attr.aria-pressed]="showArchived()" (click)="setArchivedView(true)">
+        Arşiv
+      </button>
+    </div>
+  </div>
+  @if (error()) {
+    <p class="admin-error" role="alert">{{ error() }}</p>
+  }
+  @if (notice()) {
+    <p class="admin-success" role="status">{{ notice() }}</p>
+  }
+  <div class="admin-message-grid">
+    <section class="admin-panel" aria-label="Mesaj listesi">
+      @if (loading()) {
+        <p class="admin-loading" role="status">Mesajlar yükleniyor…</p>
+      } @else if (messages().length) {
+        <ul class="admin-list admin-message-list">
+          @for (message of messages(); track message.id) {
+            <li>
+              <button
+                class="admin-message-row"
+                type="button"
+                [class.admin-message-row--unread]="!message.read_at"
+                [attr.aria-current]="selected()?.id === message.id ? 'true' : null"
+                (click)="open(message)"
+              >
+                <span class="admin-message-row__heading"
+                  ><strong>{{ message.name }}</strong
+                  ><time [attr.datetime]="message.created_at">{{
+                    message.created_at | date: 'short'
+                  }}</time></span
+                >
+                <span class="admin-message-row__email">{{ message.email }}</span>
+                <span class="admin-message-row__preview">{{ message.message }}</span>
+                @if (!message.read_at) {
+                  <span class="admin-status">Okunmadı</span>
+                }
+              </button>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="admin-empty">{{ showArchived() ? 'Arşivde mesaj yok.' : 'Gelen kutusu boş.' }}</p>
+      }
+    </section>
+
+    <section
+      class="admin-panel admin-message-detail"
+      aria-labelledby="message-detail-title"
+      aria-live="polite"
+    >
+      @if (selected(); as message) {
+        <div class="admin-panel__heading">
+          <div>
+            <p class="admin-eyebrow">
+              {{ message.archived_at ? 'Arşivlenmiş mesaj' : 'Mesaj detayı' }}
+            </p>
+            <h2 id="message-detail-title">{{ message.name }}</h2>
+          </div>
+          <time [attr.datetime]="message.created_at">{{
+            message.created_at | date: 'medium'
+          }}</time>
+        </div>
+        <a class="admin-inline-link" [href]="'mailto:' + message.email">{{ message.email }}</a>
+        <p class="admin-message-detail__body">{{ message.message }}</p>
+        <div class="admin-actions">
+          <button
+            class="admin-button admin-button--quiet"
+            type="button"
+            (click)="toggleArchive(message)"
+          >
+            {{ message.archived_at ? 'Arşivden çıkar' : 'Arşivle' }}
+          </button>
+          <button class="admin-button admin-button--danger" type="button" (click)="remove(message)">
+            Sil
+          </button>
+        </div>
+      } @else {
+        <div class="admin-empty-state">
+          <h2 id="message-detail-title">Bir mesaj seçin</h2>
+          <p>
+            Gönderen bilgilerini ve mesajın tamamını görüntülemek için soldaki listeden bir mesaj
+            açın.
+          </p>
+        </div>
+      }
+    </section>
+  </div>
+</section>

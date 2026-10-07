@@ -54,8 +54,8 @@
     <section class="surface-card content-panel" aria-labelledby="cv-title">
       <p class="eyebrow">{{ copy().cvTitle }}</p>
       <h2 id="cv-title">{{ copy().cvTitle }}</h2>
-      @if (profile.cvUrl) {
-        <a class="button button--secondary" [href]="profile.cvUrl" target="_blank" rel="noreferrer">
+      @if (cvUrl()) {
+        <a class="button button--secondary" [href]="cvUrl()" target="_blank" rel="noreferrer">
           {{ copy().cvTitle }}
         </a>
       } @else {
@@ -67,7 +67,7 @@
       <p class="eyebrow">{{ copy().socialTitle }}</p>
       <h2 id="social-title">{{ copy().socialTitle }}</h2>
       <ul class="social-list social-list--profile">
-        @for (link of profile.socialLinks; track link.label) {
+        @for (link of socialLinks(); track link.label) {
           <li>
             @if (link.href) {
               <a class="social-list__item" [href]="link.href" target="_blank" rel="noreferrer">
@@ -84,4 +84,28 @@
       </ul>
     </section>
   </div>
+
+  @if (testimonials().length) {
+    <section class="content-section" aria-labelledby="testimonials-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">{{ locale() === 'tr' ? 'Referanslar' : 'Testimonials' }}</p>
+          <h2 id="testimonials-title">{{ locale() === 'tr' ? 'Referanslar' : 'Testimonials' }}</h2>
+        </div>
+      </div>
+      <div class="content-grid content-grid--three">
+        @for (testimonial of testimonials(); track testimonial.id) {
+          <article class="surface-card content-panel">
+            <h3>{{ testimonial.title }}</h3>
+            <blockquote>
+              <p>{{ testimonial.quote }}</p>
+            </blockquote>
+            @if (testimonial.attribution) {
+              <p class="content-meta">{{ testimonial.attribution }}</p>
+            }
+          </article>
+        }
+      </div>
+    </section>
+  }
 </div>

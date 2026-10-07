@@ -6,11 +6,18 @@ import {
 } from '@angular/ssr/node';
 import express from 'express';
 import { join } from 'node:path';
+import { createCmsMiddleware } from './server/cms-api.mjs';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 
 const app = express();
 const angularApp = new AngularNodeAppEngine();
+app.disable('x-powered-by');
+if (process.env['TRUST_PROXY'] === '1') {
+  app.set('trust proxy', 1);
+}
+const cmsMiddleware = createCmsMiddleware();
+app.use(cmsMiddleware);
 
 /**
  * Example Express Rest API endpoints can be defined here.
@@ -51,13 +58,23 @@ app.use((req, res, next) => {
  */
 if (isMainModule(import.meta.url) || process.env['pm_id']) {
   const port = process.env['PORT'] || 4000;
-  app.listen(port, (error) => {
-    if (error) {
-      throw error;
-    }
+  void cmsMiddleware
+    .initialize()
+    .then(() =>
+      app.listen(port, (error) => {
+        if (error) {
+          throw error;
+        }
 
-    console.log(`Node Express server listening on http://localhost:${port}`);
-  });
+        console.log(`Node Express server listening on port ${port}`);
+      }),
+    )
+    .catch(() => {
+      console.error(
+        'CMS server startup failed. Check required runtime configuration, PostgreSQL migrations, and persistent upload storage.',
+      );
+      process.exitCode = 1;
+    });
 }
 
 /**
