@@ -166,8 +166,10 @@ test('PostgreSQL CMS authentication, publishing, CRUD, dashboard, inbox, and loc
   assert.equal(adminLoginPage.response.status, 200);
   assert.match(adminLoginPage.response.headers.get('content-type') ?? '', /text\/html/i);
   assertAdminFrameHeaders(adminLoginPage.response);
+  assert.equal(adminLoginPage.response.headers.get('x-robots-tag'), 'noindex, nofollow');
   const unauthedDashboard = await request('/api/admin/dashboard');
   assert.equal(unauthedDashboard.response.status, 401);
+  assert.equal(unauthedDashboard.response.headers.get('x-robots-tag'), 'noindex, nofollow');
   const protectedPage = await request('/admin/dashboard');
   assert.equal(protectedPage.response.status, 302);
   assert.equal(protectedPage.response.headers.get('location'), '/admin/login');
@@ -181,6 +183,17 @@ test('PostgreSQL CMS authentication, publishing, CRUD, dashboard, inbox, and loc
     401,
     'upload authorization is checked before multipart parsing',
   );
+
+  const robots = await request('/robots.txt');
+  assert.equal(robots.response.status, 200);
+  assert.match(robots.bytes.toString(), /Disallow: \/admin/);
+  assert.match(robots.bytes.toString(), /Disallow: \/api\//);
+  assert.match(robots.bytes.toString(), new RegExp(`Sitemap: ${baseUrl}\\/sitemap\\.xml`));
+  const initialSitemap = await request('/sitemap.xml');
+  assert.equal(initialSitemap.response.status, 200);
+  assert.match(initialSitemap.response.headers.get('content-type') ?? '', /application\/xml/i);
+  assert.match(initialSitemap.bytes.toString(), new RegExp(`<loc>${baseUrl}\\/blog<\\/loc>`));
+  assert.doesNotMatch(initialSitemap.bytes.toString(), /\/admin|\/api\//);
 
   const csrfResponse = await request('/api/auth/csrf');
   assert.equal(csrfResponse.response.status, 200);
@@ -394,6 +407,11 @@ test('PostgreSQL CMS authentication, publishing, CRUD, dashboard, inbox, and loc
     (await request('/api/public/content/blog')).data.some((entry) => entry.id === future.data.id),
     false,
   );
+  const publishedSitemap = await request('/sitemap.xml');
+  const publishedSitemapXml = publishedSitemap.bytes.toString();
+  assert.match(publishedSitemapXml, /\/blog\/yayimlanan-yazi/);
+  assert.doesNotMatch(publishedSitemapXml, /gelecek-yazisi|taslak-lab-kaydi/);
+  assert.doesNotMatch(publishedSitemapXml, /\/admin|\/api\//);
   const lab = await postContent('lab', {
     title: { tr: 'Taslak Lab kaydı', en: 'Draft Lab entry' },
     status: 'draft',
