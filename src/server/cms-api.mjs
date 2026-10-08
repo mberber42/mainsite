@@ -331,16 +331,20 @@ function regenerateSession(req) {
   );
 }
 
-function setSecurityHeaders(_req, res, next) {
+function setSecurityHeaders(req, res, next) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('X-Frame-Options', 'DENY');
+  if (req.path === '/api' || req.path.startsWith('/api/')) {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  }
   res.setHeader('Cache-Control', 'no-store');
   next();
 }
 
 function setAdminHtmlSecurityHeaders(req, res) {
   setSecurityHeaders(req, res, () => {});
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
   res.setHeader('Content-Security-Policy', "frame-ancestors 'none'");
 }
 
@@ -360,6 +364,104 @@ function requireMutation(req, _res, next) {
 function contentKind(req) {
   if (!CONTENT_KINDS.has(req.params.kind)) fail(404, 'content_kind_not_found');
   return req.params.kind;
+}
+
+function publicSiteOrigin(req) {
+  const configured = process.env.PUBLIC_SITE_URL?.trim();
+  if (configured) {
+    let url;
+    try {
+      url = new URL(configured);
+    } catch {
+      fail(503, 'public_site_url_invalid');
+    }
+    if (
+      !['http:', 'https:'].includes(url.protocol) ||
+      url.username ||
+      url.password ||
+      url.pathname !== '/' ||
+      url.search ||
+      url.hash ||
+      (process.env.NODE_ENV === 'production' && url.protocol !== 'https:')
+    ) {
+      fail(503, 'public_site_url_invalid');
+    }
+    return url.origin;
+  }
+  if (process.env.NODE_ENV === 'production') fail(503, 'public_site_url_not_configured');
+  let requestUrl;
+  try {
+    requestUrl = new URL(`${req.protocol}://${req.get('host')}`);
+  } catch {
+    fail(503, 'public_site_url_invalid');
+  }
+  const hostname = requestUrl.hostname.replace(/^\[|\]$/g, '');
+  if (
+    !['http:', 'https:'].includes(requestUrl.protocol) ||
+    requestUrl.username ||
+    requestUrl.password ||
+    !['localhost', '127.0.0.1', '::1'].includes(hostname)
+  ) {
+    fail(503, 'public_site_url_not_configured');
+  }
+  return requestUrl.origin;
+}
+
+function xmlEscape(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function seoRoutes(router, pool) {
+  router.get('/robots.txt', (req, res) => {
+    const origin = publicSiteOrigin(req);
+    res
+      .setHeader('Cache-Control', 'public, max-age=3600')
+      .type('text/plain')
+      .send(
+        `User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api/\nSitemap: ${origin}/sitemap.xml\n`,
+      );
+  });
+
+  router.get('/sitemap.xml', async (req, res) => {
+    const origin = publicSiteOrigin(req);
+    const result = await pool.query(
+      `SELECT kind, slug, updated_at
+       FROM content_entries
+       WHERE kind IN ('blog', 'lab')
+         AND status = 'published'
+         AND (published_at IS NULL OR published_at <= now())
+       ORDER BY kind, published_at DESC NULLS LAST, created_at DESC`,
+    );
+    const paths = [
+      '/',
+      '/hakkimda',
+      '/hizmetler',
+      '/blog',
+      '/lab',
+      '/iletisim',
+      ...result.rows.map((entry) => `/${entry.kind}/${encodeURIComponent(entry.slug)}`),
+    ];
+    const body = paths
+      .map((path, index) => {
+        const location = xmlEscape(new URL(path, `${origin}/`).toString());
+        const updatedAt = index < 6 ? null : new Date(result.rows[index - 6]?.updated_at);
+        const lastmod =
+          updatedAt && !Number.isNaN(updatedAt.valueOf()) ? updatedAt.toISOString() : '';
+        return `<url><loc>${location}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}</url>`;
+      })
+      .join('');
+    res
+      .setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600')
+      .type('application/xml')
+      .send(
+        `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${body}</urlset>`,
+      );
+  });
 }
 
 function contentQueries(router, pool) {
@@ -825,6 +927,7 @@ function createRouter(pool, uploadDir, production) {
   const router = express.Router();
   router.use(setSecurityHeaders);
   router.use(express.json({ limit: MAX_JSON_BYTES, strict: true }));
+  seoRoutes(router, pool);
   authRouter(router, pool, production);
   contentQueries(router, pool);
   dashboardRouter(router, pool);
@@ -916,10 +1019,12 @@ export function createCmsMiddleware(options = {}) {
   const middleware = async (req, res, next) => {
     const isApi = req.path === '/api' || req.path.startsWith('/api/');
     const isAdmin = req.path === '/admin' || req.path.startsWith('/admin/');
-    if (!isApi && !isAdmin) return next();
+    const isSeo = req.path === '/robots.txt' || req.path === '/sitemap.xml';
+    if (!isApi && !isAdmin && !isSeo) return next();
     if (isAdmin) setAdminHtmlSecurityHeaders(req, res);
     try {
       const active = await initialize();
+      if (isSeo) return active.router(req, res, next);
       active.sessions(req, res, (sessionError) => {
         if (sessionError) return next(sessionError);
         if (isApi) return active.router(req, res, next);

@@ -45,6 +45,9 @@ export class LabDetailPageComponent {
         this.seo.applyValues(
           `${this.copy().notFoundTitle} | Mustafa BERBER`,
           this.copy().notFoundBody,
+          undefined,
+          undefined,
+          { locale: this.locale(), robots: 'noindex, follow' },
         );
         return;
       }
@@ -53,6 +56,11 @@ export class LabDetailPageComponent {
         this.localized(entry.summary),
         entry.canonicalUrl,
         entry.ogImage ?? entry.coverImage,
+        {
+          locale: this.locale(),
+          type: 'creativeWork',
+          schemaTitle: this.localized(entry.title),
+        },
       );
       if (this.response) this.response.status = 200;
     });

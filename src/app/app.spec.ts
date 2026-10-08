@@ -283,4 +283,93 @@ describe('public routes', () => {
       message: 'Test message',
     });
   });
+
+  it('applies localized CMS metadata and emits valid, safe structured data', async () => {
+    const entry = {
+      id: 'seo-home',
+      kind: 'seo',
+      slug: 'home',
+      status: 'published',
+      publishedAt: null,
+      createdAt: '',
+      updatedAt: '',
+      title: { tr: 'Başlık', en: 'Title' },
+      summary: { tr: 'Özet', en: 'Summary' },
+      seoTitle: { tr: 'Özel başlık <x>', en: 'Custom title <x>' },
+      seoDescription: { tr: 'Özel açıklama', en: 'Custom description' },
+      canonicalUrl: 'https://public.example.test/?utm_source=campaign#section',
+      ogImage: '/images/card.png',
+    };
+    const entrySpy = vi.spyOn(cmsApiStub, 'entry').mockReturnValue(of(entry as never));
+
+    try {
+      const { fixture, page } = await createApp();
+      expect(document.title).toBe('Özel başlık <x>');
+      expect(document.querySelector('meta[name="description"]')?.getAttribute('content')).toBe(
+        'Özel açıklama',
+      );
+      expect(document.querySelector('meta[property="og:title"]')?.getAttribute('content')).toBe(
+        'Özel başlık <x>',
+      );
+      expect(document.querySelector('meta[property="og:locale"]')?.getAttribute('content')).toBe(
+        'tr_TR',
+      );
+      expect(document.querySelector('meta[name="twitter:title"]')?.getAttribute('content')).toBe(
+        'Özel başlık <x>',
+      );
+      const siteOrigin = document
+        .querySelector('meta[name="site-origin"]')
+        ?.getAttribute('content');
+      expect(siteOrigin).toBeTruthy();
+      expect(siteOrigin).not.toBe('https://public.example.test');
+      expect(document.querySelector('meta[name="twitter:image"]')?.getAttribute('content')).toBe(
+        `${siteOrigin}/images/card.png`,
+      );
+      expect(document.querySelector('link[rel="canonical"]')?.getAttribute('href')).toBe(
+        'https://public.example.test/',
+      );
+
+      const script = document.querySelector<HTMLScriptElement>('script[data-seo-jsonld]');
+      expect(script?.textContent).not.toContain('<x>');
+      const structuredData = JSON.parse(script?.textContent ?? '{}');
+      expect(structuredData['@context']).toBe('https://schema.org');
+      expect(structuredData['@graph'][0].url).toBe(`${siteOrigin}/`);
+      expect(structuredData['@graph'][1].url).toBe(`${siteOrigin}/`);
+      expect(structuredData['@graph']).toContainEqual(
+        expect.objectContaining({
+          '@type': 'WebSite',
+          name: 'Mustafa BERBER',
+          inLanguage: 'tr',
+        }),
+      );
+      const person = structuredData['@graph'].find((node: { '@type': string }) =>
+        ['Person', 'ProfilePage'].includes(node['@type']),
+      );
+      expect(person).toEqual(
+        expect.objectContaining({ name: 'Mustafa BERBER', jobTitle: 'Full Stack Developer' }),
+      );
+      expect(JSON.stringify(person)).not.toMatch(/email|telephone|sameAs|address/i);
+
+      page.querySelector<HTMLButtonElement>('[aria-label="İngilizce diline geç"]')?.click();
+      fixture.detectChanges();
+      expect(document.title).toBe('Custom title <x>');
+      expect(document.querySelector('meta[name="description"]')?.getAttribute('content')).toBe(
+        'Custom description',
+      );
+      expect(document.querySelector('meta[property="og:locale"]')?.getAttribute('content')).toBe(
+        'en_US',
+      );
+      expect(document.querySelector('meta[name="site-origin"]')?.getAttribute('content')).toBe(
+        siteOrigin,
+      );
+      const englishSchema = JSON.parse(
+        document.querySelector<HTMLScriptElement>('script[data-seo-jsonld]')?.textContent ?? '{}',
+      );
+      expect(englishSchema['@graph']).toContainEqual(
+        expect.objectContaining({ '@type': 'WebSite', inLanguage: 'en' }),
+      );
+    } finally {
+      entrySpy.mockRestore();
+    }
+  });
 });

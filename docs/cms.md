@@ -6,6 +6,7 @@ The Phase 3 admin uses a same-origin Express API in the Angular SSR Node server,
 
 - Apply explicit, transactionally tracked SQL migrations with `npm run db:migrate`.
 - Start the service only with `DATABASE_URL`, a `SESSION_SECRET` of at least 32 bytes, and an absolute `UPLOAD_DIR` on persistent storage. `PORT` defaults to 4000; set `TRUST_PROXY=1` only behind one trusted reverse proxy.
+- Set `PUBLIC_SITE_URL` to the site's exact HTTPS origin before the production build and at runtime (for example, `https://example.com/`). It must not contain credentials, a path, query, or fragment; canonical URLs, JSON-LD, `robots.txt`, and `sitemap.xml` use this configured origin rather than trusting request `Host` or forwarded headers.
 - `/admin/login` is the only unauthenticated admin route. There is no public signup. A one-time `npm run admin:bootstrap` prompts interactively for `CREATE`, email, and a hidden password, storing a salted scrypt hash. Bootstrap is atomic and rejects repeat runs.
 - Sessions are stored in PostgreSQL, use eight-hour `HttpOnly`/`SameSite=Strict` cookies and `Secure` in production, rotate at login, and are destroyed at logout. Anonymous `/api/auth/csrf` and `/api/auth/session` requests can create at most 20 persisted sessions per IP per minute; rejected requests do not create sessions. Mutation methods require same-origin checks plus a session CSRF token.
 - Admin HTML responses deny framing with `X-Frame-Options: DENY` and `Content-Security-Policy: frame-ancestors 'none'`.

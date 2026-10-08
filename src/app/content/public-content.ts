@@ -222,7 +222,7 @@ export interface PublicCopy {
 export const PUBLIC_COPY: Record<Locale, PublicCopy> = {
   tr: {
     accessibility: {
-      primaryNavigation: 'Ana gezinme',
+      primaryNavigation: 'Alt gezinme',
       socialNavigation: 'Sosyal bağlantılar',
     },
     about: {
@@ -313,7 +313,7 @@ export const PUBLIC_COPY: Record<Locale, PublicCopy> = {
   },
   en: {
     accessibility: {
-      primaryNavigation: 'Primary navigation',
+      primaryNavigation: 'Footer navigation',
       socialNavigation: 'Social links',
     },
     about: {

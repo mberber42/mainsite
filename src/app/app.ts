@@ -1,8 +1,9 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, effect, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
 import { HOME_CONTENT } from './content/home-content';
+import { SeoMetadataService } from './cms/seo-metadata.service';
 import { LocaleService } from './i18n/locale.service';
 import { SiteFooterComponent } from './site-footer/site-footer';
 import { SiteHeaderComponent } from './site-header/site-header';
@@ -16,6 +17,7 @@ import { SiteHeaderComponent } from './site-header/site-header';
 export class App {
   private readonly localeService = inject(LocaleService);
   private readonly router = inject(Router);
+  private readonly seo = inject(SeoMetadataService);
   private readonly currentUrl = toSignal(
     this.router.events.pipe(
       filter((event): event is NavigationEnd => event instanceof NavigationEnd),
@@ -27,4 +29,10 @@ export class App {
   protected readonly skipLinkLabel = computed(
     () => HOME_CONTENT[this.localeService.locale()].accessibility.skipToContent,
   );
+
+  constructor() {
+    effect(() => {
+      if (this.isAdmin()) this.seo.setRobots('noindex, nofollow');
+    });
+  }
 }

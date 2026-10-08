@@ -45,6 +45,9 @@ export class BlogDetailPageComponent {
         this.seo.applyValues(
           `${this.copy().notFoundTitle} | Mustafa BERBER`,
           this.copy().notFoundBody,
+          undefined,
+          undefined,
+          { locale: this.locale(), robots: 'noindex, follow' },
         );
         return;
       }
@@ -59,6 +62,12 @@ export class BlogDetailPageComponent {
         description,
         article.canonicalUrl,
         article.ogImage ?? article.coverImage,
+        {
+          locale: this.locale(),
+          type: 'article',
+          schemaTitle: this.localized(article.title),
+          publishedAt: article.publishedAt,
+        },
       );
       if (this.response) this.response.status = 200;
     });
