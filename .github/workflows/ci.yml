@@ -53,20 +53,27 @@ jobs:
         env:
           PUBLIC_SITE_URL: https://mainsite.example.invalid
         run: npm run build
-      - name: Install Chromium for browser accessibility checks
+      - name: Install Chromium for browser audits
         run: npx playwright install --with-deps chromium
-      - name: Run SEO, axe, keyboard, and reflow checks
+      - name: Check initial transfer budget
+        run: npm run check:performance-budget
+      - name: Run WCAG axe and Lighthouse CI audits
+        env:
+          PUBLIC_SITE_URL: http://127.0.0.1:4321
+        run: npm run test:quality
+      - name: Run Phase 4A SEO, metadata, and accessibility checks
+        if: ${{ always() && !cancelled() }}
         env:
           PUBLIC_SITE_URL: https://mainsite.example.invalid
           AUDIT_BASE_URL: http://127.0.0.1:4321
         run: npm run test:seo-a11y
-      - name: Upload Phase 4A accessibility evidence
+      - name: Upload Phase 4 and 4A quality evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: phase4a-seo-accessibility
+          name: mainsite-quality-evidence
           path: |
-            test-results/axe/
-            test-results/phase4a-playwright-results.json
-            test-results/playwright/
+            test-results/
+            playwright-report/
+            lighthouse-reports/
           if-no-files-found: ignore

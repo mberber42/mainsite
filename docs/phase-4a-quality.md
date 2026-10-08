@@ -13,12 +13,12 @@ This phase covers crawler-facing metadata, structured data, sitemap/robots, and 
 
 ## Verification
 
-Run `npm run test:seo-a11y` with `TEST_DATABASE_URL` pointing only to a dedicated database whose name ends in `_test`. The runner requires the production build to exist and verifies that the CMS tables are empty before seeding; it refuses to touch any pre-existing rows. It starts the SSR server on loopback, then clears only its own synthetic fixtures and removes the temporary upload directory on exit. The server integration tests also leave their isolated test database empty. The browser audit saves axe reports and Playwright failure evidence under the ignored `test-results/` directory.
+Run `npm run test:seo-a11y` with `TEST_DATABASE_URL` pointing only to a dedicated database whose name ends in `_test`. The runner builds the production artifact using the reserved HTTPS `.invalid` audit origin, verifies that the CMS tables are empty before seeding, and refuses to touch any pre-existing rows. It starts the SSR server on loopback, then clears only its own synthetic fixtures and removes the temporary upload directory on exit. The server integration tests also leave their isolated test database empty. Phase 4 and Phase 4A use separate Playwright configurations and retain their own reports under the ignored `test-results/` directory.
 
 The browser checks cover SSR metadata on public route types, localized CMS overrides, canonical URL normalization, BlogPosting JSON-LD safety, robots/sitemap exclusions, public-route axe checks in Turkish and English, keyboard skip navigation, reduced motion, and 320 px reflow. Critical and serious axe violations fail the audit; all reported violations are recorded for review.
 
 ## Carried-forward acceptance gates
 
-- Mobile Lighthouse TBT remains a hard acceptance limit of 200 ms and is **NOT MET** on the previously measured Phase 4 candidates. This Phase 4A audit does not weaken, waive, or substitute for that gate; see Issue #15.
+- Mobile Lighthouse TBT remains a hard acceptance limit of 200 ms and is **NOT MET**; this Phase 4A audit does not weaken, waive, or substitute for that gate; see Issue #15. A local single-run `npm run test:quality` check during the Phase 4A/main reconciliation measured home mobile TBT 448 ms, Blog mobile 385 ms, and desktop 421 ms (desktop performance 67); these diagnostic values are not a matched acceptance benchmark, but the unchanged hard gate failed.
 - Deployment remains blocked until the target host's persistent upload volume and combined PostgreSQL/file backup-and-restore path are verified.
 - Phase 3 real admin UI smoke remains separately blocked as recorded in Issue #13.

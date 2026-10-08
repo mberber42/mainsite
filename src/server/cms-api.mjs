@@ -381,10 +381,12 @@ function publicSiteOrigin(req) {
       url.password ||
       url.pathname !== '/' ||
       url.search ||
-      url.hash ||
-      (process.env.NODE_ENV === 'production' && url.protocol !== 'https:')
+      url.hash
     ) {
       fail(503, 'public_site_url_invalid');
+    }
+    if (process.env.NODE_ENV === 'production' && url.protocol !== 'https:') {
+      fail(503, 'public_site_url_https_required');
     }
     return url.origin;
   }
@@ -437,19 +439,17 @@ function seoRoutes(router, pool) {
          AND (published_at IS NULL OR published_at <= now())
        ORDER BY kind, published_at DESC NULLS LAST, created_at DESC`,
     );
-    const paths = [
-      '/',
-      '/hakkimda',
-      '/hizmetler',
-      '/blog',
-      '/lab',
-      '/iletisim',
-      ...result.rows.map((entry) => `/${entry.kind}/${encodeURIComponent(entry.slug)}`),
-    ];
-    const body = paths
-      .map((path, index) => {
-        const location = xmlEscape(new URL(path, `${origin}/`).toString());
-        const updatedAt = index < 6 ? null : new Date(result.rows[index - 6]?.updated_at);
+    const staticEntries = ['/', '/hakkimda', '/hizmetler', '/blog', '/lab', '/iletisim'].map(
+      (path) => ({ path }),
+    );
+    const contentEntries = result.rows.map((entry) => ({
+      path: `/${entry.kind}/${encodeURIComponent(entry.slug)}`,
+      updatedAt: entry.updated_at,
+    }));
+    const body = [...staticEntries, ...contentEntries]
+      .map((entry) => {
+        const location = xmlEscape(new URL(entry.path, `${origin}/`).toString());
+        const updatedAt = entry.updatedAt ? new Date(entry.updatedAt) : null;
         const lastmod =
           updatedAt && !Number.isNaN(updatedAt.valueOf()) ? updatedAt.toISOString() : '';
         return `<url><loc>${location}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}</url>`;

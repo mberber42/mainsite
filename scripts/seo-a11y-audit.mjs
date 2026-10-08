@@ -188,6 +188,12 @@ async function stopServer() {
 }
 
 try {
+  console.log(`Building the SEO audit artifact with PUBLIC_SITE_URL=${publicSiteUrl}.`);
+  await runProcess('npm', ['run', 'build'], {
+    ...process.env,
+    PUBLIC_SITE_URL: publicSiteUrl,
+  });
+
   await runMigrations(pool);
   const existingRows = await pool.query(
     `SELECT
@@ -235,7 +241,7 @@ try {
     [
       join(repositoryRoot, 'node_modules/@playwright/test/cli.js'),
       'test',
-      '--config=playwright.config.mjs',
+      '--config=playwright.seo.config.mjs',
     ],
     {
       ...process.env,

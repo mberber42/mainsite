@@ -74,8 +74,6 @@ export const SITE_IDENTITY = {
 } as const;
 
 export const SITE_CONFIG = {
-  // Illustrative example only. Replace with the real site URL before launch.
-  portfolioBaseUrl: 'https://portfolio.alanadi.com',
   socialLinks: [
     { platform: 'GitHub', href: null as string | null },
     { platform: 'LinkedIn', href: null as string | null },
@@ -87,7 +85,7 @@ export const HOME_CONTENT: Record<Locale, HomeCopy> = {
   tr: {
     accessibility: {
       skipToContent: 'Ana içeriğe geç',
-      navigation: 'Ana gezinme',
+      navigation: 'Üst gezinme',
       languageGroup: 'Dil seçimi',
       switchToTurkish: 'Türkçe diline geç',
       switchToEnglish: 'İngilizce diline geç',
@@ -197,7 +195,7 @@ export const HOME_CONTENT: Record<Locale, HomeCopy> = {
   en: {
     accessibility: {
       skipToContent: 'Skip to main content',
-      navigation: 'Primary navigation',
+      navigation: 'Header navigation',
       languageGroup: 'Language selection',
       switchToTurkish: 'Switch language to Turkish',
       switchToEnglish: 'Switch language to English',

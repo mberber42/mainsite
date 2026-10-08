@@ -5,6 +5,7 @@ import {
   writeResponseToNodeResponse,
 } from '@angular/ssr/node';
 import express from 'express';
+import compression from 'compression';
 import { join } from 'node:path';
 import { createCmsMiddleware } from './server/cms-api.mjs';
 
@@ -16,6 +17,7 @@ app.disable('x-powered-by');
 if (process.env['TRUST_PROXY'] === '1') {
   app.set('trust proxy', 1);
 }
+app.use(compression());
 const cmsMiddleware = createCmsMiddleware();
 app.use(cmsMiddleware);
 

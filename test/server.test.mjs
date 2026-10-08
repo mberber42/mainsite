@@ -169,8 +169,10 @@ test('PostgreSQL CMS authentication, publishing, CRUD, dashboard, inbox, and loc
   assert.equal(adminLoginPage.response.status, 200);
   assert.match(adminLoginPage.response.headers.get('content-type') ?? '', /text\/html/i);
   assertAdminFrameHeaders(adminLoginPage.response);
+  assert.equal(adminLoginPage.response.headers.get('x-robots-tag'), 'noindex, nofollow');
   const unauthedDashboard = await request('/api/admin/dashboard');
   assert.equal(unauthedDashboard.response.status, 401);
+  assert.equal(unauthedDashboard.response.headers.get('x-robots-tag'), 'noindex, nofollow');
   const protectedPage = await request('/admin/dashboard');
   assert.equal(protectedPage.response.status, 302);
   assert.equal(protectedPage.response.headers.get('location'), '/admin/login');
@@ -184,6 +186,17 @@ test('PostgreSQL CMS authentication, publishing, CRUD, dashboard, inbox, and loc
     401,
     'upload authorization is checked before multipart parsing',
   );
+
+  const robots = await request('/robots.txt');
+  assert.equal(robots.response.status, 200);
+  assert.match(robots.bytes.toString(), /Disallow: \/admin/);
+  assert.match(robots.bytes.toString(), /Disallow: \/api\//);
+  assert.match(robots.bytes.toString(), new RegExp(`Sitemap: ${baseUrl}\\/sitemap\\.xml`));
+  const initialSitemap = await request('/sitemap.xml');
+  assert.equal(initialSitemap.response.status, 200);
+  assert.match(initialSitemap.response.headers.get('content-type') ?? '', /application\/xml/i);
+  assert.match(initialSitemap.bytes.toString(), new RegExp(`<loc>${baseUrl}\\/blog<\\/loc>`));
+  assert.doesNotMatch(initialSitemap.bytes.toString(), /\/admin|\/api\//);
 
   const csrfResponse = await request('/api/auth/csrf');
   assert.equal(csrfResponse.response.status, 200);
@@ -397,6 +410,11 @@ test('PostgreSQL CMS authentication, publishing, CRUD, dashboard, inbox, and loc
     (await request('/api/public/content/blog')).data.some((entry) => entry.id === future.data.id),
     false,
   );
+  const publishedSitemap = await request('/sitemap.xml');
+  const publishedSitemapXml = publishedSitemap.bytes.toString();
+  assert.match(publishedSitemapXml, /\/blog\/yayimlanan-yazi/);
+  assert.doesNotMatch(publishedSitemapXml, /gelecek-yazisi|taslak-lab-kaydi/);
+  assert.doesNotMatch(publishedSitemapXml, /\/admin|\/api\//);
   const lab = await postContent('lab', {
     title: { tr: 'Taslak Lab kaydı', en: 'Draft Lab entry' },
     status: 'draft',
@@ -405,12 +423,16 @@ test('PostgreSQL CMS authentication, publishing, CRUD, dashboard, inbox, and loc
   const sessionsBeforeSeo = Number(
     (await pool.query('SELECT count(*)::int AS total FROM cms_sessions')).rows[0].total,
   );
-  const robots = await request('/robots.txt');
-  assert.equal(robots.response.status, 200);
-  assert.match(robots.bytes.toString(), /Disallow: \/admin/);
-  assert.match(robots.bytes.toString(), /Disallow: \/api\//);
-  assert.ok(robots.bytes.toString().includes(`Sitemap: ${baseUrl}/sitemap.xml`));
-  assert.equal(robots.response.headers.get('set-cookie'), null, 'robots does not create a session');
+  const robotsAfterContent = await request('/robots.txt');
+  assert.equal(robotsAfterContent.response.status, 200);
+  assert.match(robotsAfterContent.bytes.toString(), /Disallow: \/admin/);
+  assert.match(robotsAfterContent.bytes.toString(), /Disallow: \/api\//);
+  assert.ok(robotsAfterContent.bytes.toString().includes(`Sitemap: ${baseUrl}/sitemap.xml`));
+  assert.equal(
+    robotsAfterContent.response.headers.get('set-cookie'),
+    null,
+    'robots does not create a session',
+  );
   const forwardedRobots = await request('/robots.txt', {
     headers: {
       'X-Forwarded-Host': 'attacker.example',
@@ -421,10 +443,10 @@ test('PostgreSQL CMS authentication, publishing, CRUD, dashboard, inbox, and loc
   assert.ok(forwardedRobots.bytes.toString().includes(`Sitemap: ${baseUrl}/sitemap.xml`));
   assert.ok(!forwardedRobots.bytes.toString().includes('attacker.example'));
 
-  const sitemap = await request('/sitemap.xml');
-  assert.equal(sitemap.response.status, 200);
-  assert.match(sitemap.response.headers.get('content-type') ?? '', /application\/xml/i);
-  const sitemapXml = sitemap.bytes.toString();
+  const sitemapAfterContent = await request('/sitemap.xml');
+  assert.equal(sitemapAfterContent.response.status, 200);
+  assert.match(sitemapAfterContent.response.headers.get('content-type') ?? '', /application\/xml/i);
+  const sitemapXml = sitemapAfterContent.bytes.toString();
   assert.match(sitemapXml, /^<\?xml version="1\.0" encoding="UTF-8"\?><urlset/);
   assert.ok(sitemapXml.includes(`${baseUrl}/blog/yayimlanan-yazi`));
   assert.ok(!sitemapXml.includes(`${baseUrl}/blog/gelecek-yazisi`));
@@ -432,7 +454,7 @@ test('PostgreSQL CMS authentication, publishing, CRUD, dashboard, inbox, and loc
   assert.ok(!sitemapXml.includes('/admin'));
   assert.ok(!sitemapXml.includes('/api/'));
   assert.equal(
-    sitemap.response.headers.get('set-cookie'),
+    sitemapAfterContent.response.headers.get('set-cookie'),
     null,
     'sitemap does not create a session',
   );
