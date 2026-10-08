@@ -29,7 +29,7 @@ The production Express server gzip-compresses text responses, including SSR HTML
 
 Lighthouse runs against the home page on mobile and desktop and the blog index on mobile. Minimum category scores per run are Performance 85, Accessibility 95, Best Practices 90, and SEO 95. These are regression gates, not an assertion that every user's field data will match lab results.
 
-Run `npm run check:performance-budget` after a production build. `npm run test:quality` runs the browser tests and Lighthouse checks. CI retains the axe JSON, Playwright results/screenshots (on failure), and Lighthouse JSON/HTML as run artifacts.
+Run `npm run check:performance-budget` after a production build. `npm run test:quality` runs the full browser and Lighthouse gate, including the unchanged 200 ms mobile TBT ceiling. CI exposes two independent checks: `Phase 4A scoped CI` runs lint, unit/server tests, format, build, transfer budget, and the SEO/a11y browser audit; `Phase 4 performance (hard TBT 200 ms)` runs the full Lighthouse quality audit. The scoped job can authorize review of #17 only; it does not turn a failing performance job or overall workflow red status green. CI retains the axe JSON, Playwright results/screenshots (on failure), and Lighthouse JSON/HTML as run artifacts.
 
 ## Accessibility audit
 

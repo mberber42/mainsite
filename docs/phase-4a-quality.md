@@ -20,5 +20,6 @@ The browser checks cover SSR metadata on public route types, localized CMS overr
 ## Carried-forward acceptance gates
 
 - Mobile Lighthouse TBT remains a hard acceptance limit of 200 ms and is **NOT MET**; this Phase 4A audit does not weaken, waive, or substitute for that gate; see Issue #15. A local single-run `npm run test:quality` check during the Phase 4A/main reconciliation measured home mobile TBT 448 ms, Blog mobile 385 ms, and desktop 421 ms (desktop performance 67); these diagnostic values are not a matched acceptance benchmark, but the unchanged hard gate failed.
+- CI names the Phase 4A static/SEO/a11y suite `Phase 4A scoped CI` and keeps `Phase 4 performance (hard TBT 200 ms)` as a separate, unchanged job. A passing scoped job permits only the #17 SEO/accessibility review gate; it does not imply overall CI/workflow success while performance remains red.
 - Deployment remains blocked until the target host's persistent upload volume and combined PostgreSQL/file backup-and-restore path are verified.
 - Phase 3 real admin UI smoke remains separately blocked as recorded in Issue #13.
