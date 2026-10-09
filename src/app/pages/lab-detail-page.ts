@@ -51,9 +51,14 @@ export class LabDetailPageComponent {
         );
         return;
       }
+      const contentTitle = this.localized(entry.title);
+      const contentSummary = this.localized(entry.summary);
+      const title = this.localized(entry.seoTitle ?? entry.title).trim() || contentTitle;
+      const description =
+        this.localized(entry.seoDescription ?? entry.summary).trim() || contentSummary;
       this.seo.applyValues(
-        `${this.localized(entry.title)} | Mustafa BERBER`,
-        this.localized(entry.summary),
+        `${title} | Mustafa BERBER`,
+        description,
         entry.canonicalUrl,
         entry.ogImage ?? entry.coverImage,
         {

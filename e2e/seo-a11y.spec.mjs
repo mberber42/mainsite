@@ -182,11 +182,16 @@ test('SSR metadata, localized CMS precedence, canonical URLs, and JSON-LD are co
 
   const labResponse = await page.goto('/lab/phase4a-seo-project', { waitUntil: 'networkidle' });
   expect(labResponse?.status()).toBe(200);
-  await setLocale(page, 'en');
-  await expect(page).toHaveTitle('Verified project | Mustafa BERBER');
+  await expect(page).toHaveTitle('Özel Lab SEO başlığı | Mustafa BERBER');
   await expect(page.locator('meta[name="description"]')).toHaveAttribute(
     'content',
-    'Project summary',
+    'Özel Lab SEO açıklaması',
+  );
+  await setLocale(page, 'en');
+  await expect(page).toHaveTitle('Custom Lab SEO title | Mustafa BERBER');
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+    'content',
+    'Custom Lab SEO description',
   );
   const labSchema = JSON.parse(
     (await page.locator('script[data-seo-jsonld]').textContent()) ?? '{}',
@@ -211,6 +216,64 @@ test('SSR metadata, localized CMS precedence, canonical URLs, and JSON-LD are co
   const publicApiResponse = await request.get('/api/public/content/blog');
   expect(publicApiResponse.status()).toBe(200);
   expect(publicApiResponse.headers()['x-robots-tag']).toBe('noindex, nofollow');
+});
+
+test('SSR metadata is present in the initial HTML with JavaScript disabled', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+  const routes = [
+    {
+      // `/` is intentionally prerendered; its static metadata cannot contain request-time CMS values.
+      path: '/',
+      title:
+        'Dijital ürünleri, sağlam mühendislik ve düşünülmüş deneyimlerle hayata geçiriyorum. | Mustafa BERBER',
+      description:
+        'Fikirden çalışan ürüne uzanan süreçte; netlik, özen ve sürdürülebilirliği merkeze alan bir yaklaşım.',
+    },
+    {
+      path: '/hakkimda',
+      title: 'Hakkımda | Mustafa BERBER',
+      description: 'Bu sayfa, doğrulanmış profil içeriği eklendiğinde güncellenecek.',
+    },
+    {
+      path: '/blog/phase4a-seo-article',
+      title: 'Özel yazı SEO başlığı | Mustafa BERBER',
+      description: 'Özel yazı açıklaması',
+    },
+    {
+      path: '/lab/phase4a-seo-project',
+      title: 'Özel Lab SEO başlığı | Mustafa BERBER',
+      description: 'Özel Lab SEO açıklaması',
+    },
+  ];
+
+  try {
+    for (const route of routes) {
+      const response = await page.goto(route.path, { waitUntil: 'domcontentloaded' });
+      expect(response?.status(), `${route.path} no-JS SSR status`).toBe(200);
+      await expect(page.locator('html')).toHaveAttribute('lang', 'tr');
+      await expect(page).toHaveTitle(route.title);
+      await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+        'content',
+        route.description,
+      );
+      await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
+        'content',
+        route.title,
+      );
+      await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+        'href',
+        publicUrl(route.path),
+      );
+      await page.getByRole('button', { name: 'İngilizce diline geç' }).click();
+      await expect(page.locator('html')).toHaveAttribute('lang', 'tr');
+      await expect(page).toHaveTitle(route.title);
+    }
+  } finally {
+    await context.close();
+  }
 });
 
 test('robots and sitemap exclude admin, APIs, drafts, and future content', async ({
@@ -280,8 +343,79 @@ test('keyboard skip link, reduced motion, and public-page reflow work at 320px',
   await page.goto('/', { waitUntil: 'networkidle' });
   await page.keyboard.press('Tab');
   await expect(page.locator('.skip-link')).toBeFocused();
+  await expect(page.locator('.skip-link')).toBeVisible();
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/#main-content$/);
+
+  await page.goto('/iletisim', { waitUntil: 'networkidle' });
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Tab');
+  const brandLink = page.locator('header.site-header .brand');
+  await expect(brandLink).toBeFocused();
+  const brandFocus = await brandLink.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { outlineStyle: style.outlineStyle, outlineWidth: style.outlineWidth };
+  });
+  expect(brandFocus.outlineStyle).not.toBe('none');
+  expect(Number.parseFloat(brandFocus.outlineWidth)).toBeGreaterThan(0);
+
+  await page.keyboard.press('Tab');
+  for (let index = 0; index < 40; index += 1) {
+    if (
+      await page.locator('#contact-name').evaluate((element) => element.matches(':focus-visible'))
+    ) {
+      break;
+    }
+    await page.keyboard.press('Tab');
+  }
+  const nameControl = page.locator('#contact-name');
+  await expect(nameControl).toBeFocused();
+  const inputFocus = await nameControl.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { outlineStyle: style.outlineStyle, boxShadow: style.boxShadow };
+  });
+  expect(inputFocus.outlineStyle !== 'none' || inputFocus.boxShadow !== 'none').toBe(true);
+
+  let contactPostSent = false;
+  page.on('request', (request) => {
+    if (request.method() === 'POST' && request.url().includes('/api/public/contact')) {
+      contactPostSent = true;
+    }
+  });
+  await page.getByRole('button', { name: 'Mesajı gönder' }).click();
+  const invalidFields = [
+    { id: 'contact-name', hint: 'name-hint', error: 'name-error', text: 'Ad alanı zorunludur.' },
+    {
+      id: 'contact-email',
+      hint: 'email-hint',
+      error: 'email-error',
+      text: 'E-posta alanı zorunludur.',
+    },
+    {
+      id: 'contact-message',
+      hint: 'message-hint',
+      error: 'message-error',
+      text: 'Mesaj alanı zorunludur.',
+    },
+  ];
+  for (const field of invalidFields) {
+    const control = page.locator(`#${field.id}`);
+    await expect(control).toHaveAttribute('aria-invalid', 'true');
+    const describedBy = (await control.getAttribute('aria-describedby'))?.split(/\s+/) ?? [];
+    expect(describedBy).toContain(field.hint);
+    expect(describedBy).toContain(field.error);
+    await expect(page.locator(`#${field.error}`)).toHaveText(field.text);
+  }
+  expect(contactPostSent).toBe(false);
+
+  await setLocale(page, 'en');
+  await expect(page.locator('#name-error')).toHaveText('Name is required.');
+  await expect(page.locator('#email-error')).toHaveText('Email is required.');
+  await expect(page.locator('#message-error')).toHaveText('Message is required.');
+  await expect(page.locator('#contact-name')).toHaveAttribute(
+    'aria-describedby',
+    'name-hint name-error',
+  );
 
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await expect(page.locator('html')).toHaveCSS('scroll-behavior', 'auto');

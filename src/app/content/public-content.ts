@@ -47,6 +47,8 @@ export type LabProject = {
   readonly bodyMarkdown?: LocalizedText;
   readonly category?: LocalizedText;
   readonly tags?: readonly LocalizedText[];
+  readonly seoTitle?: LocalizedText;
+  readonly seoDescription?: LocalizedText;
   readonly links?: readonly { label: LocalizedText; href: string }[];
   readonly canonicalUrl?: string;
   readonly ogImage?: string;

@@ -142,6 +142,8 @@ async function seedPublishedContent() {
         title: { tr: 'Doğrulanmış proje', en: 'Verified project' },
         summary: { tr: 'Proje açıklaması', en: 'Project summary' },
         body: { tr: 'Proje içeriği', en: 'Project content' },
+        seoTitle: { tr: 'Özel Lab SEO başlığı', en: 'Custom Lab SEO title' },
+        seoDescription: { tr: 'Özel Lab SEO açıklaması', en: 'Custom Lab SEO description' },
       },
     },
     {
