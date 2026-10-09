@@ -40,7 +40,6 @@ export class LabDetailPageComponent {
   constructor() {
     effect(() => {
       const entry = this.project();
-      const locale = this.locale();
       if (!entry) {
         if (this.response) this.response.status = 404;
         this.seo.applyValues(
@@ -48,17 +47,25 @@ export class LabDetailPageComponent {
           this.copy().notFoundBody,
           undefined,
           undefined,
-          { locale, robots: 'noindex, follow' },
+          { locale: this.locale(), robots: 'noindex, follow' },
         );
         return;
       }
-      const title = this.localized(entry.title);
+      const contentTitle = this.localized(entry.title);
+      const contentSummary = this.localized(entry.summary);
+      const title = this.localized(entry.seoTitle ?? entry.title).trim() || contentTitle;
+      const description =
+        this.localized(entry.seoDescription ?? entry.summary).trim() || contentSummary;
       this.seo.applyValues(
         `${title} | Mustafa BERBER`,
-        this.localized(entry.summary),
+        description,
         entry.canonicalUrl,
         entry.ogImage ?? entry.coverImage,
-        { locale, type: 'creativeWork', schemaTitle: title },
+        {
+          locale: this.locale(),
+          type: 'creativeWork',
+          schemaTitle: this.localized(entry.title),
+        },
       );
       if (this.response) this.response.status = 200;
     });

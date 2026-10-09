@@ -187,6 +187,10 @@ export class CmsApiService {
                   bodyMarkdown: localized(entry.body ?? entry.description),
                   category: entry.category ? localized(entry.category) : undefined,
                   tags: localizedTags(entry.tags),
+                  seoTitle: entry.seoTitle ? localized(entry.seoTitle) : undefined,
+                  seoDescription: entry.seoDescription
+                    ? localized(entry.seoDescription)
+                    : undefined,
                   links: entry.links,
                   canonicalUrl: entry.canonicalUrl,
                   ogImage: entry.ogImage,
@@ -210,6 +214,8 @@ export class CmsApiService {
               bodyMarkdown: localized(entry.body ?? entry.description),
               category: entry.category ? localized(entry.category) : undefined,
               tags: localizedTags(entry.tags),
+              seoTitle: entry.seoTitle ? localized(entry.seoTitle) : undefined,
+              seoDescription: entry.seoDescription ? localized(entry.seoDescription) : undefined,
               links: entry.links,
               canonicalUrl: entry.canonicalUrl,
               ogImage: entry.ogImage,

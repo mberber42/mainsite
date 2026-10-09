@@ -12,8 +12,8 @@ permissions:
   contents: read
 
 jobs:
-  quality:
-    name: Quality checks
+  phase4a:
+    name: Phase 4A scoped CI
     runs-on: ubuntu-latest
     env:
       TEST_DATABASE_URL: postgresql://postgres@localhost:5432/mainsite_test
@@ -45,27 +45,82 @@ jobs:
         run: npm ci
       - name: Lint
         run: npm run lint
-      - name: Test
+      - name: Unit and server tests
         run: npm test
       - name: Check formatting
         run: npm run format:check
       - name: Build
         env:
-          PUBLIC_SITE_URL: http://127.0.0.1:4321
+          PUBLIC_SITE_URL: https://mainsite.example.invalid
         run: npm run build
-      - name: Install Chromium for browser audits
-        run: npx playwright install --with-deps chromium
       - name: Check initial transfer budget
         run: npm run check:performance-budget
-      - name: Run WCAG axe and Lighthouse CI audits
+      - name: Install Chromium for browser audits
+        run: npx playwright install --with-deps chromium
+      - name: Run Phase 4A SEO and accessibility checks
         env:
-          PUBLIC_SITE_URL: http://127.0.0.1:4321
-        run: npm run test:quality
-      - name: Upload accessibility and Lighthouse evidence
+          PUBLIC_SITE_URL: https://mainsite.example.invalid
+          AUDIT_BASE_URL: http://127.0.0.1:4321
+        run: npm run test:seo-a11y
+      - name: Upload Phase 4A evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: phase4-quality-evidence
+          name: phase4a-scoped-evidence
+          path: |
+            test-results/axe/
+            test-results/phase4a-playwright-results.json
+            test-results/phase4a-playwright/
+          if-no-files-found: ignore
+
+  performance:
+    name: Phase 4 performance (hard TBT 200 ms)
+    runs-on: ubuntu-latest
+    env:
+      TEST_DATABASE_URL: postgresql://postgres@localhost:5432/mainsite_test
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: mainsite_test
+          POSTGRES_USER: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d mainsite_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.15.0
+          cache: npm
+      - name: Pin npm
+        run: npm install --global npm@11.17.0
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Build performance-budget artifact
+        env:
+          PUBLIC_SITE_URL: http://127.0.0.1:4321
+        run: npm run build
+      - name: Check initial transfer budget
+        run: npm run check:performance-budget
+      - name: Install Chromium for Lighthouse and axe
+        run: npx playwright install --with-deps chromium
+      - name: Run full Phase 4 quality and Lighthouse gate
+        env:
+          PUBLIC_SITE_URL: http://127.0.0.1:4321
+        run: npm run test:quality
+      - name: Upload performance and accessibility evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase4-performance-evidence
           path: |
             test-results/
             playwright-report/

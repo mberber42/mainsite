@@ -3,8 +3,8 @@ import { inject, Injectable, REQUEST } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import type { Locale } from '../content/home-content';
 import { SITE_IDENTITY } from '../content/home-content';
-import type { CmsEntry } from './cms-api.service';
 import type { LocalizedText } from '../content/public-content';
+import type { CmsEntry } from './cms-api.service';
 
 export interface SeoOptions {
   locale?: Locale;
@@ -15,10 +15,10 @@ export interface SeoOptions {
 }
 
 function valueForLocale(value: unknown, locale: Locale): string {
-  if (typeof value === 'string') return value;
+  if (typeof value === 'string') return value.trim();
   if (value && typeof value === 'object') {
     const localized = value as Partial<LocalizedText>;
-    return typeof localized[locale] === 'string' ? localized[locale] : '';
+    return typeof localized[locale] === 'string' ? localized[locale].trim() : '';
   }
   return '';
 }
@@ -34,10 +34,6 @@ function parseHttpUrl(value: string | undefined): URL | null {
   }
 }
 
-function isLocalHostname(hostname: string): boolean {
-  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
-}
-
 function configuredOrigin(): URL | null {
   const runtime = globalThis as typeof globalThis & {
     process?: { env?: Record<string, string | undefined> };
@@ -45,7 +41,16 @@ function configuredOrigin(): URL | null {
   const configured = runtime.process?.env?.['PUBLIC_SITE_URL']?.trim();
   const url = parseHttpUrl(configured);
   if (!url || url.pathname !== '/' || url.search || url.hash) return null;
+  if (runtime.process?.env?.['NODE_ENV'] === 'production' && url.protocol !== 'https:') return null;
   return new URL(url.origin);
+}
+
+function localOrigin(url: URL): boolean {
+  return url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '[::1]';
+}
+
+function withLocale(value: unknown, locale: Locale, fallback: string): string {
+  return valueForLocale(value, locale) || fallback;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -61,21 +66,18 @@ export class SeoMetadataService {
     fallbackTitle: string,
     fallbackDescription: string,
   ): void {
-    this.applyValues(
-      entry?.seoTitle
-        ? valueForLocale(entry.seoTitle, locale)
-        : entry?.title
-          ? valueForLocale(entry.title, locale)
-          : fallbackTitle,
-      entry?.seoDescription
-        ? valueForLocale(entry.seoDescription, locale)
-        : entry?.summary
-          ? valueForLocale(entry.summary, locale)
-          : fallbackDescription,
-      entry?.canonicalUrl,
-      entry?.ogImage,
-      { locale },
-    );
+    const title = entry
+      ? withLocale(entry.seoTitle, locale, withLocale(entry.title, locale, fallbackTitle))
+      : fallbackTitle;
+    const description = entry
+      ? withLocale(
+          entry.seoDescription,
+          locale,
+          withLocale(entry.summary ?? entry.description, locale, fallbackDescription),
+        )
+      : fallbackDescription;
+
+    this.applyValues(title, description, entry?.canonicalUrl, entry?.ogImage, { locale });
   }
 
   applyValues(
@@ -88,26 +90,28 @@ export class SeoMetadataService {
     const locale = options.locale ?? 'tr';
     const canonical = this.resolveCanonical(canonicalUrl);
     const image = this.resolveImage(imageUrl, canonical);
+    const cleanTitle = title.trim();
     const cleanDescription = description.trim().replace(/\s+/g, ' ');
     const pageType = options.type === 'article' ? 'article' : 'website';
 
-    this.title.setTitle(title);
+    this.title.setTitle(cleanTitle);
     this.meta.updateTag({ name: 'description', content: cleanDescription });
     this.meta.updateTag({ name: 'robots', content: options.robots ?? 'index, follow' });
     this.meta.updateTag({ property: 'og:site_name', content: SITE_IDENTITY.name });
     this.meta.updateTag({ property: 'og:type', content: pageType });
     this.meta.updateTag({ property: 'og:locale', content: locale === 'tr' ? 'tr_TR' : 'en_US' });
-    this.meta.updateTag({ property: 'og:title', content: title });
+    this.meta.updateTag({ property: 'og:title', content: cleanTitle });
     this.meta.updateTag({ property: 'og:description', content: cleanDescription });
     this.meta.updateTag({
       name: 'twitter:card',
       content: image ? 'summary_large_image' : 'summary',
     });
-    this.meta.updateTag({ name: 'twitter:title', content: title });
+    this.meta.updateTag({ name: 'twitter:title', content: cleanTitle });
     this.meta.updateTag({ name: 'twitter:description', content: cleanDescription });
 
     if (canonical) {
       this.meta.updateTag({ property: 'og:url', content: canonical });
+      this.meta.updateTag({ name: 'twitter:url', content: canonical });
       let link = this.document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
       if (!link) {
         link = this.document.createElement('link');
@@ -117,8 +121,8 @@ export class SeoMetadataService {
       link.href = canonical;
     } else {
       this.meta.removeTag('property="og:url"');
-      const link = this.document.querySelector('link[rel="canonical"]');
-      link?.parentNode?.removeChild(link);
+      this.meta.removeTag('name="twitter:url"');
+      this.document.querySelector('link[rel="canonical"]')?.remove();
     }
 
     if (image) {
@@ -140,7 +144,7 @@ export class SeoMetadataService {
     }
 
     this.setStructuredData({
-      title,
+      title: cleanTitle,
       description: cleanDescription,
       canonical,
       image,
@@ -161,15 +165,21 @@ export class SeoMetadataService {
 
   private siteOrigin(): URL | null {
     const configured = configuredOrigin();
-    if (configured) return configured;
-
-    const existing = parseHttpUrl(
-      this.document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.href,
+    if (configured) {
+      this.meta.updateTag({ name: 'site-origin', content: configured.origin });
+      return configured;
+    }
+    const serializedOrigin = parseHttpUrl(
+      this.meta.getTag('name="site-origin"')?.getAttribute('content') ?? undefined,
     );
-    if (existing && !isLocalHostname(existing.hostname)) return new URL(existing.origin);
-
+    if (serializedOrigin) return new URL(serializedOrigin.origin);
+    const runtime = globalThis as typeof globalThis & {
+      process?: { env?: Record<string, string | undefined> };
+    };
+    if (runtime.process?.env?.['NODE_ENV'] === 'production') return null;
     const current = this.currentPageUrl();
-    if (current && (!isLocalHostname(current.hostname) || !this.request)) {
+    if (current && localOrigin(current)) {
+      this.meta.updateTag({ name: 'site-origin', content: current.origin });
       return new URL(current.origin);
     }
     return null;
@@ -196,7 +206,7 @@ export class SeoMetadataService {
 
   private resolveImage(imageUrl: string | undefined, canonical?: string): string | undefined {
     if (!imageUrl?.trim()) return undefined;
-    const origin = parseHttpUrl(canonical)?.origin ?? this.siteOrigin()?.origin;
+    const origin = this.siteOrigin()?.origin ?? parseHttpUrl(canonical)?.origin;
     const image =
       parseHttpUrl(imageUrl) ??
       (origin ? parseHttpUrl(new URL(imageUrl, origin).toString()) : null);
@@ -213,22 +223,21 @@ export class SeoMetadataService {
     schemaTitle?: string;
     publishedAt?: string | null;
   }): void {
-    const origin = this.siteOrigin()?.origin ?? parseHttpUrl(data.canonical)?.origin;
-    if (!origin) {
-      const previousScript = this.document.querySelector('script[data-seo-jsonld]');
-      previousScript?.parentNode?.removeChild(previousScript);
+    const siteOrigin = this.siteOrigin();
+    if (!siteOrigin) {
+      this.document.querySelector('script[data-seo-jsonld]')?.remove();
       return;
     }
+    const origin = siteOrigin.origin;
 
-    const websiteId = `${origin}/#website`;
     const personId = `${origin}/#person`;
     const graph: Record<string, unknown>[] = [
       {
         '@type': 'WebSite',
-        '@id': websiteId,
+        '@id': `${origin}/#website`,
         url: `${origin}/`,
         name: SITE_IDENTITY.name,
-        inLanguage: data.locale === 'tr' ? 'tr' : 'en',
+        inLanguage: data.locale,
       },
       {
         '@type': 'Person',
@@ -245,9 +254,9 @@ export class SeoMetadataService {
         headline: data.schemaTitle ?? data.title,
         name: data.schemaTitle ?? data.title,
         description: data.description,
-        inLanguage: data.locale === 'tr' ? 'tr' : 'en',
-        author: { '@id': personId },
+        inLanguage: data.locale,
       };
+      if (data.type === 'article') node['author'] = { '@id': personId };
       if (data.canonical) {
         node['@id'] = data.canonical;
         node['mainEntityOfPage'] = { '@type': 'WebPage', '@id': data.canonical };

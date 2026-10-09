@@ -341,6 +341,7 @@ function setSecurityHeaders(req, res, next) {
   res.setHeader('Cache-Control', 'no-store');
   next();
 }
+
 function setAdminHtmlSecurityHeaders(req, res) {
   setSecurityHeaders(req, res, () => {});
   res.setHeader('X-Robots-Tag', 'noindex, nofollow');
@@ -364,6 +365,7 @@ function contentKind(req) {
   if (!CONTENT_KINDS.has(req.params.kind)) fail(404, 'content_kind_not_found');
   return req.params.kind;
 }
+
 function publicSiteOrigin(req) {
   const configured = process.env.PUBLIC_SITE_URL?.trim();
   if (configured) {
@@ -395,15 +397,18 @@ function publicSiteOrigin(req) {
   } catch {
     fail(503, 'public_site_url_invalid');
   }
+  const hostname = requestUrl.hostname.replace(/^\[|\]$/g, '');
   if (
     !['http:', 'https:'].includes(requestUrl.protocol) ||
     requestUrl.username ||
-    requestUrl.password
+    requestUrl.password ||
+    !['localhost', '127.0.0.1', '::1'].includes(hostname)
   ) {
-    fail(503, 'public_site_url_invalid');
+    fail(503, 'public_site_url_not_configured');
   }
   return requestUrl.origin;
 }
+
 function xmlEscape(value) {
   return String(value)
     .replace(/&/g, '&amp;')
@@ -412,6 +417,7 @@ function xmlEscape(value) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;');
 }
+
 function seoRoutes(router, pool) {
   router.get('/robots.txt', (req, res) => {
     const origin = publicSiteOrigin(req);
@@ -422,6 +428,7 @@ function seoRoutes(router, pool) {
         `User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api/\nSitemap: ${origin}/sitemap.xml\n`,
       );
   });
+
   router.get('/sitemap.xml', async (req, res) => {
     const origin = publicSiteOrigin(req);
     const result = await pool.query(
@@ -432,26 +439,20 @@ function seoRoutes(router, pool) {
          AND (published_at IS NULL OR published_at <= now())
        ORDER BY kind, published_at DESC NULLS LAST, created_at DESC`,
     );
-    const urls = [
-      '/',
-      '/hakkimda',
-      '/hizmetler',
-      '/blog',
-      '/lab',
-      '/iletisim',
-      ...result.rows.map((entry) => `/${entry.kind}/${encodeURIComponent(entry.slug)}`),
-    ];
-    const staticEntries = urls.slice(0, 6).map((path) => ({ path }));
+    const staticEntries = ['/', '/hakkimda', '/hizmetler', '/blog', '/lab', '/iletisim'].map(
+      (path) => ({ path }),
+    );
     const contentEntries = result.rows.map((entry) => ({
       path: `/${entry.kind}/${encodeURIComponent(entry.slug)}`,
       updatedAt: entry.updated_at,
     }));
-    const entries = [...staticEntries, ...contentEntries];
-    const body = entries
+    const body = [...staticEntries, ...contentEntries]
       .map((entry) => {
-        const loc = xmlEscape(new URL(entry.path, `${origin}/`).toString());
-        const lastmod = entry.updatedAt ? new Date(entry.updatedAt).toISOString() : '';
-        return `<url><loc>${loc}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}</url>`;
+        const location = xmlEscape(new URL(entry.path, `${origin}/`).toString());
+        const updatedAt = entry.updatedAt ? new Date(entry.updatedAt) : null;
+        const lastmod =
+          updatedAt && !Number.isNaN(updatedAt.valueOf()) ? updatedAt.toISOString() : '';
+        return `<url><loc>${location}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}</url>`;
       })
       .join('');
     res
@@ -462,6 +463,7 @@ function seoRoutes(router, pool) {
       );
   });
 }
+
 function contentQueries(router, pool) {
   router.get('/api/admin/content/:kind', requireAdmin, async (req, res) => {
     const kind = contentKind(req);
@@ -1022,9 +1024,10 @@ export function createCmsMiddleware(options = {}) {
     if (isAdmin) setAdminHtmlSecurityHeaders(req, res);
     try {
       const active = await initialize();
+      if (isSeo) return active.router(req, res, next);
       active.sessions(req, res, (sessionError) => {
         if (sessionError) return next(sessionError);
-        if (isApi || isSeo) return active.router(req, res, next);
+        if (isApi) return active.router(req, res, next);
         const loginPage = req.path === '/admin/login';
         if (!loginPage && !req.session?.admin?.id) return res.redirect(302, '/admin/login');
         next();

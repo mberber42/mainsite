@@ -144,6 +144,9 @@ after(async () => {
   if (appClose) await appClose();
   if (unsafeUploadDir) await rm(unsafeUploadDir, { recursive: true, force: true });
   if (uploadDir) await rm(uploadDir, { recursive: true, force: true });
+  await pool.query(
+    'TRUNCATE admin_users, cms_sessions, content_entries, contact_messages, stored_files, site_settings CASCADE',
+  );
   await pool.end();
 });
 
@@ -417,6 +420,49 @@ test('PostgreSQL CMS authentication, publishing, CRUD, dashboard, inbox, and loc
     status: 'draft',
   });
   assert.equal(lab.response.status, 201);
+  const sessionsBeforeSeo = Number(
+    (await pool.query('SELECT count(*)::int AS total FROM cms_sessions')).rows[0].total,
+  );
+  const robotsAfterContent = await request('/robots.txt');
+  assert.equal(robotsAfterContent.response.status, 200);
+  assert.match(robotsAfterContent.bytes.toString(), /Disallow: \/admin/);
+  assert.match(robotsAfterContent.bytes.toString(), /Disallow: \/api\//);
+  assert.ok(robotsAfterContent.bytes.toString().includes(`Sitemap: ${baseUrl}/sitemap.xml`));
+  assert.equal(
+    robotsAfterContent.response.headers.get('set-cookie'),
+    null,
+    'robots does not create a session',
+  );
+  const forwardedRobots = await request('/robots.txt', {
+    headers: {
+      'X-Forwarded-Host': 'attacker.example',
+      'X-Forwarded-Proto': 'https',
+    },
+  });
+  assert.equal(forwardedRobots.response.status, 200);
+  assert.ok(forwardedRobots.bytes.toString().includes(`Sitemap: ${baseUrl}/sitemap.xml`));
+  assert.ok(!forwardedRobots.bytes.toString().includes('attacker.example'));
+
+  const sitemapAfterContent = await request('/sitemap.xml');
+  assert.equal(sitemapAfterContent.response.status, 200);
+  assert.match(sitemapAfterContent.response.headers.get('content-type') ?? '', /application\/xml/i);
+  const sitemapXml = sitemapAfterContent.bytes.toString();
+  assert.match(sitemapXml, /^<\?xml version="1\.0" encoding="UTF-8"\?><urlset/);
+  assert.ok(sitemapXml.includes(`${baseUrl}/blog/yayimlanan-yazi`));
+  assert.ok(!sitemapXml.includes(`${baseUrl}/blog/gelecek-yazisi`));
+  assert.ok(!sitemapXml.includes(`${baseUrl}/lab/taslak-lab-kaydi`));
+  assert.ok(!sitemapXml.includes('/admin'));
+  assert.ok(!sitemapXml.includes('/api/'));
+  assert.equal(
+    sitemapAfterContent.response.headers.get('set-cookie'),
+    null,
+    'sitemap does not create a session',
+  );
+  const sessionsAfterSeo = Number(
+    (await pool.query('SELECT count(*)::int AS total FROM cms_sessions')).rows[0].total,
+  );
+  assert.equal(sessionsAfterSeo, sessionsBeforeSeo, 'SEO endpoints do not write session rows');
+
   assert.equal(
     (await adminRequest(`/api/admin/files/${imageUpload.data.id}`, { method: 'DELETE' })).response
       .status,

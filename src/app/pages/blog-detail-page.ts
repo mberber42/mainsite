@@ -40,7 +40,6 @@ export class BlogDetailPageComponent {
   constructor() {
     effect(() => {
       const article = this.post();
-      const locale = this.locale();
       if (!article) {
         if (this.response) this.response.status = 404;
         this.seo.applyValues(
@@ -48,7 +47,7 @@ export class BlogDetailPageComponent {
           this.copy().notFoundBody,
           undefined,
           undefined,
-          { locale, robots: 'noindex, follow' },
+          { locale: this.locale(), robots: 'noindex, follow' },
         );
         return;
       }
@@ -64,9 +63,9 @@ export class BlogDetailPageComponent {
         article.canonicalUrl,
         article.ogImage ?? article.coverImage,
         {
-          locale,
+          locale: this.locale(),
           type: 'article',
-          schemaTitle: title,
+          schemaTitle: this.localized(article.title),
           publishedAt: article.publishedAt,
         },
       );
