@@ -231,21 +231,26 @@ test('SSR metadata is present in the initial HTML with JavaScript disabled', asy
         'Dijital ürünleri, sağlam mühendislik ve düşünülmüş deneyimlerle hayata geçiriyorum. | Mustafa BERBER',
       description:
         'Fikirden çalışan ürüne uzanan süreçte; netlik, özen ve sürdürülebilirliği merkeze alan bir yaklaşım.',
+      ogType: 'website',
     },
     {
       path: '/hakkimda',
       title: 'Hakkımda | Mustafa BERBER',
       description: 'Bu sayfa, doğrulanmış profil içeriği eklendiğinde güncellenecek.',
+      ogType: 'website',
     },
     {
       path: '/blog/phase4a-seo-article',
       title: 'Özel yazı SEO başlığı | Mustafa BERBER',
       description: 'Özel yazı açıklaması',
+      ogType: 'article',
+      image: '/media/article-cover.png',
     },
     {
       path: '/lab/phase4a-seo-project',
       title: 'Özel Lab SEO başlığı | Mustafa BERBER',
       description: 'Özel Lab SEO açıklaması',
+      ogType: 'website',
     },
   ];
 
@@ -259,14 +264,52 @@ test('SSR metadata is present in the initial HTML with JavaScript disabled', asy
         'content',
         route.description,
       );
+      const canonical = publicUrl(route.path);
+      await expect(page.locator('meta[property="og:site_name"]')).toHaveAttribute(
+        'content',
+        'Mustafa BERBER',
+      );
+      await expect(page.locator('meta[property="og:type"]')).toHaveAttribute(
+        'content',
+        route.ogType,
+      );
+      await expect(page.locator('meta[property="og:locale"]')).toHaveAttribute('content', 'tr_TR');
       await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
         'content',
         route.title,
       );
-      await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
-        'href',
-        publicUrl(route.path),
+      await expect(page.locator('meta[property="og:description"]')).toHaveAttribute(
+        'content',
+        route.description,
       );
+      await expect(page.locator('meta[property="og:url"]')).toHaveAttribute('content', canonical);
+      await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute(
+        'content',
+        route.image ? 'summary_large_image' : 'summary',
+      );
+      await expect(page.locator('meta[name="twitter:title"]')).toHaveAttribute(
+        'content',
+        route.title,
+      );
+      await expect(page.locator('meta[name="twitter:description"]')).toHaveAttribute(
+        'content',
+        route.description,
+      );
+      await expect(page.locator('meta[name="twitter:url"]')).toHaveAttribute('content', canonical);
+      await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', canonical);
+      if (route.image) {
+        await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(
+          'content',
+          publicUrl(route.image),
+        );
+        await expect(page.locator('meta[name="twitter:image"]')).toHaveAttribute(
+          'content',
+          publicUrl(route.image),
+        );
+      } else {
+        await expect(page.locator('meta[property="og:image"]')).toHaveCount(0);
+        await expect(page.locator('meta[name="twitter:image"]')).toHaveCount(0);
+      }
       await page.getByRole('button', { name: 'İngilizce diline geç' }).click();
       await expect(page.locator('html')).toHaveAttribute('lang', 'tr');
       await expect(page).toHaveTitle(route.title);
